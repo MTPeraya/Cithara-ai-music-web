@@ -281,13 +281,6 @@ if song.is_generating():
     print("Please wait...")
 ```
 
-## Security Notes
-
-- **No Authentication Required** for this phase (deferred to later implementation)
-- **Admin console** is protected by Django's default authentication
-- **SQLite database** is suitable for development; use PostgreSQL for production
-- **ALLOWED_HOSTS** configuration needed for deployment
-
 ## Future Expansions
 
 The domain layer is designed to support:

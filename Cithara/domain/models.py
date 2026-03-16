@@ -11,9 +11,7 @@ from django.db import models
 from django.core.validators import MaxLengthValidator, MaxValueValidator
 
 
-# ============================================================================
 # Enumerations (Django Choices)
-# ============================================================================
 
 class GenreType(models.TextChoices):
     """Musical genre enumeration."""
@@ -67,9 +65,8 @@ class GenerationStatus(models.TextChoices):
     FAILED = "Failed", "Failed"
 
 
-# ============================================================================
+
 # Domain Models
-# ============================================================================
 
 class User(models.Model):
     """
