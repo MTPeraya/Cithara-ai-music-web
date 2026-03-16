@@ -1,10 +1,10 @@
-# Cithara - AI Music Web Generator (Domain Layer Implementation)
+# Cithara - AI Music Web Generator 
 
-> A Django-based web application for generating AI music with a well-defined domain layer following Domain-Driven Design principles.
+> A Django-based web application for generating AI music.
 
 ## Overview
 
-This project implements the **domain layer** for Cithara, an AI-powered music generation platform. It follows the approved domain model from Exercise 2 (Model&Supporting_notes.pdf) and provides a robust foundation for persistence, relationships, and domain constraints.
+This project implements the **domain layer** for Cithara, an AI-powered music generation platform. It follows the domain model from Exercise 2 (Model&Supporting_notes.pdf) and provides a robust foundation for persistence, relationships, and domain constraints.
 
 ### Key Features
 

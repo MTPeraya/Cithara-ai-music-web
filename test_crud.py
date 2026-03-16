@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Test script for CRUD operations on Cithara domain models.
 Run with: python3 test_crud.py
