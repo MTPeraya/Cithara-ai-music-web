@@ -16,28 +16,6 @@ This project implements the **domain layer** for Cithara, an AI-powered music ge
 - **CRUD Operations**: Django Admin interface for Create, Read, Update, Delete operations
 - **Admin Interface**: User-friendly admin panels for all domain entities
 
-## Project Structure
-
-```
-Cithara/
-├── manage.py                 # Django management script
-├── db.sqlite3               # SQLite database
-├── test_crud.py             # CRUD operation test script
-├── Cithara/                 # Project configuration
-│   ├── settings.py          # Django settings
-│   ├── urls.py              # URL routing
-│   ├── wsgi.py              # WSGI application
-│   └── asgi.py              # ASGI application
-└── domain/                  # Domain layer app
-    ├── models.py            # Core domain models (User, Library, Song, ShareLink)
-    ├── admin.py             # Django Admin configuration for CRUD
-    ├── migrations/          # Database migration files
-    │   └── 0001_initial.py  # Initial schema migration
-    ├── apps.py              # App configuration
-    ├── tests.py             # Unit tests
-    └── views.py             # API views (for future expansion)
-```
-
 ## Domain Model
 
 The domain layer consists of four core entities:
