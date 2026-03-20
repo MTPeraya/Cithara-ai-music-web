@@ -7,5 +7,3 @@ class SingerVoiceType(models.TextChoices):
     """Singer voice preference for song generation."""
     MALE = "Male", "Male"
     FEMALE = "Female", "Female"
-    NEUTRAL = "Neutral", "Neutral"
-    DUET = "Duet", "Duet"

@@ -10,6 +10,5 @@ class OccasionType(models.TextChoices):
     FUNERAL = "Funeral", "Funeral"
     PARTY = "Party", "Party"
     RELAXATION = "Relaxation", "Relaxation"
-    WORKOUT = "Workout", "Workout"
     STUDY = "Study", "Study"
     OTHER = "Other", "Other"
