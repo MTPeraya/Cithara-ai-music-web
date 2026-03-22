@@ -6,6 +6,7 @@ Run with: python3 test_crud.py
 import os
 import sys
 import django
+import uuid
 
 # Setup Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Cithara.settings")
@@ -22,9 +23,10 @@ def test_crud():
     try:
         # CREATE
         print("\n✓ CREATE Operations:")
+        unique_id = str(uuid.uuid4())[:8]
         user = User.objects.create(
-            username="test_user_001",
-            email="test@example.com"
+            username=f"test_user_{unique_id}",
+            email=f"test_{unique_id}@example.com"
         )
         print(f"   - User: {user} (ID: {str(user.id)[:8]}...)")
         

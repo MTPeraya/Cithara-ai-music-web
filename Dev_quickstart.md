@@ -18,6 +18,7 @@ pip install django==6.0.2
 cd Cithara
 
 # Run migrations (creates database)
+python3 manage.py makemigrations
 python3 manage.py migrate
 
 # Create admin account
