@@ -16,6 +16,13 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'created_at']
         read_only_fields = ['id', 'created_at']
+    
+    def create(self, validated_data):
+        """Create a user and automatically create their library."""
+        user = User.objects.create(**validated_data)
+        # Automatically create a library for the user
+        Library.objects.create(user=user)
+        return user
 
 
 class LibrarySerializer(serializers.ModelSerializer):
