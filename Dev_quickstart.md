@@ -11,8 +11,8 @@ cd .../Cithara-ai-music-web
 python3 -m venv venv
 source venv/bin/activate
 
-# Install Django
-pip install django==6.0.2
+# Install Django and REST Framework
+pip install django==6.0.2 djangorestframework==3.14.0
 
 # Navigate to Django project
 cd Cithara
@@ -31,6 +31,7 @@ python3 manage.py createsuperuser
 python3 manage.py runserver
 
 # Access admin at: http://127.0.0.1:8000/admin/
+# Access API at: http://127.0.0.1:8000/api/
 ```
 
 
@@ -41,9 +42,42 @@ python3 manage.py runserver
 python3 manage.py runserver
 
 # Then visit:
-# Admin: http://127.0.0.1:8000/admin/
-# API (future): http://127.0.0.1:8000/api/
+# Admin UI: http://127.0.0.1:8000/admin/
+# REST API: http://127.0.0.1:8000/api/
 ```
+
+### API Examples
+
+```bash
+# Create a user
+curl -X POST http://127.0.0.1:8000/api/users/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "testuser", "email": "test@example.com"}'
+
+# List all users
+curl http://127.0.0.1:8000/api/users/
+
+# Create a library (after getting user UUID)
+curl -X POST http://127.0.0.1:8000/api/libraries/ \
+  -H "Content-Type: application/json" \
+  -d '{"user": "your-user-uuid"}'
+
+# Create a song
+curl -X POST http://127.0.0.1:8000/api/songs/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "library": "your-library-uuid",
+    "title": "My First Song",
+    "genre": "Pop",
+    "mood": "Happy",
+    "occasion": "Party",
+    "singer_voice": "Female",
+    "prompt": "Upbeat pop song",
+    "audio_format": "MP3"
+  }'
+```
+
+See [README.md](README.md) for comprehensive API documentation.
 
 
 ## 3. Testing CRUD operations

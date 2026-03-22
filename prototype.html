@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cithara - AI Music Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    * {
+      font-family: 'Outfit', sans-serif;
+    }
+    
+    .mono {
+      font-family: 'Space Mono', monospace;
+    }
+    
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.8; }
+      50% { transform: scale(1.2); opacity: 0.3; }
+      100% { transform: scale(0.8); opacity: 0.8; }
+    }
+    
+    @keyframes wave {
+      0%, 100% { height: 8px; }
+      50% { height: 32px; }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-fade-in {
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    .animate-slide-up {
+      animation: slideUp 0.6s ease-out forwards;
+    }
+    
+    .wave-bar {
+      animation: wave 1s ease-in-out infinite;
+    }
+    
+    .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+    
+    .progress-fill {
+      transition: width 0.3s ease-out;
+    }
+    
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      transition: all 0.2s ease;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    }
+    
+    .card-hover {
+      transition: all 0.2s ease;
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-slate-50 overflow-auto">
+  <div id="app" class="w-full h-full"></div>
+  <script>
+    const defaultConfig = {
+      app_tagline: "Create music with AI in minutes",
+      empty_library_message: "No songs in your library yet",
+      background_color: "#f8fafc",
+      surface_color: "#ffffff",
+      text_color: "#1e293b",
+      primary_action: "#6366f1",
+      secondary_action: "#64748b"
+    };
+
+    let config = { ...defaultConfig };
+
+    // App State
+    let currentPage = 'signin';
+    let currentStep = 1;
+    let isPlaying = false;
+    let currentSongIndex = null;
+    let generationProgress = 0;
+
+    let formData = {
+      title: '',
+      occasion: '',
+      genre: '',
+      voice: '',
+      mood: '',
+      story: '',
+      context: ''
+    };
+
+    let library = [
+      { id: 1, title: "Summer Memories", genre: "Pop", mood: "Uplifting", date: "Dec 15, 2024", duration: "3:24" },
+      { id: 2, title: "Midnight Jazz", genre: "Jazz", mood: "Relaxed", date: "Dec 14, 2024", duration: "4:12" },
+      { id: 3, title: "Rocky Mountain High", genre: "Country", mood: "Nostalgic", date: "Dec 12, 2024", duration: "3:45" }
+    ];
+
+    const genres = ['Rock', 'Pop', 'Hip-Hop', 'Country', 'Jazz'];
+    const voices = ['Male (Tenor)', 'Male (Baritone)', 'Female (Soprano)', 'Female (Alto)', 'Duet', 'No Vocals'];
+    const moods = ['Uplifting', 'Relaxed', 'Energetic', 'Romantic', 'Nostalgic', 'Melancholic', 'Empowering'];
+
+    function navigate(page) {
+      currentPage = page;
+      render();
+    }
+
+    function nextStep() {
+      if (currentStep < 3) {
+        currentStep++;
+        render();
+      }
+    }
+
+    function prevStep() {
+      if (currentStep > 1) {
+        currentStep--;
+        render();
+      }
+    }
+
+    function startGeneration() {
+      currentPage = 'generating';
+      generationProgress = 0;
+      render();
+      
+      const interval = setInterval(() => {
+        generationProgress += Math.random() * 15;
+        if (generationProgress >= 100) {
+          generationProgress = 100;
+          clearInterval(interval);
+          setTimeout(() => {
+            library.unshift({
+              id: Date.now(),
+              title: formData.title || "Untitled Song",
+              genre: formData.genre,
+              mood: formData.mood,
+              date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              duration: `${Math.floor(Math.random() * 2) + 2}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`
+            });
+            currentPage = 'library';
+            currentSongIndex = 0;
+            formData = { title: '', occasion: '', genre: '', voice: '', mood: '', story: '', context: '' };
+            currentStep = 1;
+            render();
+          }, 500);
+        }
+        render();
+      }, 300);
+    }
+
+    function playSong(index) {
+      currentSongIndex = index;
+      isPlaying = true;
+      render();
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      render();
+    }
+
+    function deleteSong(index) {
+      library.splice(index, 1);
+      if (currentSongIndex === index) {
+        currentSongIndex = null;
+        isPlaying = false;
+      } else if (currentSongIndex > index) {
+        currentSongIndex--;
+      }
+      render();
+    }
+
+    function renderSignIn() {
+      return `
+        <div class="w-full h-full flex items-center justify-center" style="background: ${config.background_color};">
+          <div class="text-center animate-fade-in">
+            <!-- Logo -->
+            <div class="mb-8">
+              <div class="w-24 h-24 mx-auto rounded-3xl flex items-center justify-center mb-6" style="background: linear-gradient(135deg, ${config.primary_action} 0%, #8b5cf6 100%); box-shadow: 0 10px 40px rgba(99, 102, 241, 0.3);">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                  <path d="M24 4C24 4 36 8 36 24C36 40 24 44 24 44" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                  <path d="M24 4C24 4 12 8 12 24C12 40 24 44 24 44" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="24" cy="24" r="6" fill="white"/>
+                  <path d="M30 24H42" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                  <path d="M6 24H18" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <h1 class="text-5xl font-bold mb-3" style="color: ${config.text_color};">Cithara</h1>
+              <p class="text-xl" style="color: ${config.secondary_action};" id="tagline-text">${config.app_tagline}</p>
+            </div>
+            
+            <!-- Sign In Button -->
+            <button onclick="navigate('create')" class="inline-flex items-center gap-4 px-8 py-4 rounded-2xl font-medium text-lg transition-all hover:shadow-lg" style="background: ${config.surface_color}; color: ${config.text_color}; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+              <svg width="24" height="24" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Sign in with Google
+            </button>
+            
+            <p class="mt-8 text-sm" style="color: ${config.secondary_action};">
+              Free to use • No credit card required
+            </p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCreate() {
+      const steps = [
+        { num: 1, label: 'Basic Info' },
+        { num: 2, label: 'Style & Mood' },
+        { num: 3, label: 'Story' }
+      ];
+
+      return `
+        <div class="w-full h-full flex flex-col" style="background: ${config.background_color};">
+          <!-- Header -->
+          ${renderHeader()}
+          
+          <div class="flex-1 overflow-auto">
+            <div class="max-w-2xl mx-auto px-6 py-8">
+              <!-- Progress Steps -->
+              <div class="flex items-center justify-center gap-2 mb-10">
+                ${steps.map((step, i) => `
+                  <div class="flex items-center">
+                    <div class="flex items-center gap-2">
+                      <div class="w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${
+                        currentStep >= step.num 
+                          ? 'text-white' 
+                          : 'text-slate-400'
+                      }" style="${currentStep >= step.num ? `background: ${config.primary_action};` : `background: ${config.surface_color}; border: 2px solid #e2e8f0;`}">
+                        ${currentStep > step.num ? '✓' : step.num}
+                      </div>
+                      <span class="text-sm font-medium hidden sm:block" style="color: ${currentStep >= step.num ? config.text_color : config.secondary_action};">${step.label}</span>
+                    </div>
+                    ${i < steps.length - 1 ? `<div class="w-12 h-0.5 mx-3" style="background: ${currentStep > step.num ? config.primary_action : '#e2e8f0'};"></div>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+
+              <!-- Form Card -->
+              <div class="rounded-3xl p-8 animate-slide-up" style="background: ${config.surface_color}; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                ${currentStep === 1 ? renderStep1() : ''}
+                ${currentStep === 2 ? renderStep2() : ''}
+                ${currentStep === 3 ? renderStep3() : ''}
+
+                <!-- Navigation -->
+                <div class="flex justify-between mt-8 pt-6 border-t border-slate-100">
+                  ${currentStep > 1 ? `
+                    <button onclick="prevStep()" class="px-6 py-3 rounded-xl font-medium transition-all hover:bg-slate-100" style="color: ${config.secondary_action};">
+                      ← Back
+                    </button>
+                  ` : '<div></div>'}
+                  
+                  ${currentStep < 3 ? `
+                    <button onclick="nextStep()" class="btn-primary px-8 py-3 rounded-xl font-medium text-white">
+                      Next →
+                    </button>
+                  ` : `
+                    <button onclick="navigate('review')" class="btn-primary px-8 py-3 rounded-xl font-medium text-white">
+                      Review Song →
+                    </button>
+                  `}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStep1() {
+      return `
+        <h2 class="text-2xl font-semibold mb-6" style="color: ${config.text_color};">Tell us about your song</h2>
+        
+        <div class="space-y-5">
+          <div>
+            <label class="block text-sm font-medium mb-2" style="color: ${config.text_color};">Song Title</label>
+            <input type="text" value="${formData.title}" onchange="formData.title = this.value" placeholder="e.g., Summer Memories" 
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 text-base" style="background: ${config.background_color}; color: ${config.text_color};">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2" style="color: ${config.text_color};">What's the occasion?</label>
+            <input type="text" value="${formData.occasion}" onchange="formData.occasion = this.value" placeholder="e.g., Wedding anniversary, Birthday, Just for fun" 
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 text-base" style="background: ${config.background_color}; color: ${config.text_color};">
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStep2() {
+      return `
+        <h2 class="text-2xl font-semibold mb-6" style="color: ${config.text_color};">Choose your style</h2>
+        
+        <div class="space-y-5">
+          <div>
+            <label class="block text-sm font-medium mb-2" style="color: ${config.text_color};">Genre</label>
+            <select onchange="formData.genre = this.value" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-base appearance-none cursor-pointer" style="background: ${config.background_color}; color: ${config.text_color};">
+              <option value="">Select a genre</option>
+              ${genres.map(g => `<option value="${g}" ${formData.genre === g ? 'selected' : ''}>${g}</option>`).join('')}
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2" style="color: ${config.text_color};">Singer Voice</label>
+            <select onchange="formData.voice = this.value" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-base appearance-none cursor-pointer" style="background: ${config.background_color}; color: ${config.text_color};">
+              <option value="">Select voice type</option>
+              ${voices.map(v => `<option value="${v}" ${formData.voice === v ? 'selected' : ''}>${v}</option>`).join('')}
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2" style="color: ${config.text_color};">Mood</label>
+            <select onchange="formData.mood = this.value" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-base appearance-none cursor-pointer" style="background: ${config.background_color}; color: ${config.text_color};">
+              <option value="">Select a mood</option>
+              ${moods.map(m => `<option value="${m}" ${formData.mood === m ? 'selected' : ''}>${m}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStep3() {
+      return `
+        <h2 class="text-2xl font-semibold mb-6" style="color: ${config.text_color};">Add your story</h2>
+        
+        <div class="space-y-5">
+          <div>
+            <label class="block text-sm font-medium mb-2" style="color: ${config.text_color};">
+              Custom Story <span class="font-normal" style="color: ${config.secondary_action};">(optional)</span>
+            </label>
+            <textarea onchange="formData.story = this.value" rows="4" placeholder="Share the story behind your song. What memories, feelings, or moments should it capture?" 
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 text-base resize-none" style="background: ${config.background_color}; color: ${config.text_color};">${formData.story}</textarea>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2" style="color: ${config.text_color};">
+              Additional Context <span class="font-normal" style="color: ${config.secondary_action};">(optional)</span>
+            </label>
+            <textarea onchange="formData.context = this.value" rows="3" maxlength="1000" placeholder="Any specific lyrics, themes, or musical elements you'd like included..." 
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 text-base resize-none" style="background: ${config.background_color}; color: ${config.text_color};">${formData.context}</textarea>
+            <p class="text-xs mt-1" style="color: ${config.secondary_action};">${formData.context.length}/1000 characters</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderReview() {
+      const details = [
+        { label: 'Song Title', value: formData.title || '—' },
+        { label: 'Occasion', value: formData.occasion || '—' },
+        { label: 'Genre', value: formData.genre || '—' },
+        { label: 'Voice', value: formData.voice || '—' },
+        { label: 'Mood', value: formData.mood || '—' },
+        { label: 'Story', value: formData.story || '—' },
+        { label: 'Additional Context', value: formData.context || '—' }
+      ];
+
+      return `
+        <div class="w-full h-full flex flex-col" style="background: ${config.background_color};">
+          ${renderHeader()}
+          
+          <div class="flex-1 overflow-auto">
+            <div class="max-w-2xl mx-auto px-6 py-8">
+              <div class="text-center mb-8 animate-fade-in">
+                <h2 class="text-3xl font-bold mb-2" style="color: ${config.text_color};">Review Your Song</h2>
+                <p style="color: ${config.secondary_action};">Make sure everything looks good before generating</p>
+              </div>
+
+              <div class="rounded-3xl p-8 animate-slide-up" style="background: ${config.surface_color}; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                <div class="space-y-4">
+                  ${details.map(d => `
+                    <div class="flex justify-between py-3 border-b border-slate-100 last:border-0">
+                      <span class="font-medium" style="color: ${config.secondary_action};">${d.label}</span>
+                      <span class="text-right max-w-xs truncate" style="color: ${config.text_color};">${d.value}</span>
+                    </div>
+                  `).join('')}
+                </div>
+
+                <div class="flex gap-4 mt-8 pt-6 border-t border-slate-100">
+                  <button onclick="currentStep = 1; navigate('create')" class="flex-1 px-6 py-3 rounded-xl font-medium border-2 transition-all hover:bg-slate-50" style="border-color: ${config.primary_action}; color: ${config.primary_action};">
+                    Edit Details
+                  </button>
+                  <button onclick="startGeneration()" class="flex-1 btn-primary px-6 py-3 rounded-xl font-medium text-white">
+                    ✨ Generate Song
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderGenerating() {
+      const messages = [
+        { progress: 0, text: "Analyzing your story..." },
+        { progress: 20, text: "Composing melodies..." },
+        { progress: 40, text: "Arranging instruments..." },
+        { progress: 60, text: "Adding vocals..." },
+        { progress: 80, text: "Mixing and mastering..." },
+        { progress: 95, text: "Final touches..." }
+      ];
+
+      const currentMessage = [...messages].reverse().find(m => generationProgress >= m.progress)?.text || messages[0].text;
+
+      return `
+        <div class="w-full h-full flex flex-col" style="background: ${config.background_color};">
+          ${renderHeader()}
+          
+          <div class="flex-1 flex items-center justify-center">
+            <div class="text-center max-w-md mx-auto px-6 animate-fade-in">
+              <!-- Animated Visualizer -->
+              <div class="flex items-end justify-center gap-1 h-16 mb-8">
+                ${[1,2,3,4,5].map(() => `
+                  <div class="w-3 rounded-full wave-bar" style="background: ${config.primary_action};"></div>
+                `).join('')}
+              </div>
+
+              <h2 class="text-2xl font-bold mb-2" style="color: ${config.text_color};">Creating Your Song</h2>
+              <p class="mb-8" style="color: ${config.secondary_action};">${currentMessage}</p>
+
+              <!-- Progress Bar -->
+              <div class="w-full h-3 rounded-full overflow-hidden mb-4" style="background: #e2e8f0;">
+                <div class="h-full rounded-full progress-fill" style="width: ${generationProgress}%; background: linear-gradient(90deg, ${config.primary_action}, #8b5cf6);"></div>
+              </div>
+              
+              <p class="mono text-sm font-semibold" style="color: ${config.primary_action};">${Math.round(generationProgress)}%</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLibrary() {
+      return `
+        <div class="w-full h-full flex flex-col" style="background: ${config.background_color};">
+          ${renderHeader()}
+          
+          <div class="flex-1 overflow-auto">
+            <div class="max-w-4xl mx-auto px-6 py-8">
+              <div class="flex items-center justify-between mb-8">
+                <div>
+                  <h2 class="text-3xl font-bold" style="color: ${config.text_color};">Your Library</h2>
+                  <p style="color: ${config.secondary_action};">${library.length} song${library.length !== 1 ? 's' : ''}</p>
+                </div>
+                <button onclick="navigate('create')" class="btn-primary px-6 py-3 rounded-xl font-medium text-white flex items-center gap-2">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 4v12M4 10h12"/>
+                  </svg>
+                  Create New
+                </button>
+              </div>
+
+              ${library.length === 0 ? `
+                <div class="text-center py-20 animate-fade-in">
+                  <div class="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4" style="background: #f1f5f9;">
+                    <svg width="32" height="32" fill="none" stroke="${config.secondary_action}" stroke-width="2">
+                      <path d="M9 18V5l12-2v13"/>
+                      <circle cx="6" cy="18" r="3"/>
+                      <circle cx="18" cy="16" r="3"/>
+                    </svg>
+                  </div>
+                  <p class="text-lg" style="color: ${config.secondary_action};" id="empty-message">${config.empty_library_message}</p>
+                  <button onclick="navigate('create')" class="mt-4 text-sm font-medium" style="color: ${config.primary_action};">Create your first song →</button>
+                </div>
+              ` : `
+                <div class="space-y-4">
+                  ${library.map((song, i) => `
+                    <div class="rounded-2xl p-5 card-hover cursor-pointer animate-slide-up ${currentSongIndex === i ? 'ring-2' : ''}" 
+                      style="background: ${config.surface_color}; animation-delay: ${i * 0.05}s; ${currentSongIndex === i ? `ring-color: ${config.primary_action};` : ''}"
+                      onclick="playSong(${i})">
+                      <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, ${config.primary_action}20, #8b5cf620);">
+                          ${currentSongIndex === i && isPlaying ? `
+                            <div class="flex items-end gap-0.5 h-6">
+                              ${[1,2,3].map(() => `<div class="w-1 rounded-full wave-bar" style="background: ${config.primary_action};"></div>`).join('')}
+                            </div>
+                          ` : `
+                            <svg width="24" height="24" fill="${config.primary_action}">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          `}
+                        </div>
+                        
+                        <div class="flex-1 min-w-0">
+                          <h3 class="font-semibold truncate" style="color: ${config.text_color};">${song.title}</h3>
+                          <p class="text-sm" style="color: ${config.secondary_action};">${song.genre} • ${song.mood}</p>
+                        </div>
+                        
+                        <div class="text-right">
+                          <p class="mono text-sm" style="color: ${config.text_color};">${song.duration}</p>
+                          <p class="text-xs" style="color: ${config.secondary_action};">${song.date}</p>
+                        </div>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
+            </div>
+          </div>
+
+          ${currentSongIndex !== null ? renderPlayer() : ''}
+        </div>
+      `;
+    }
+
+    function renderPlayer() {
+      const song = library[currentSongIndex];
+      if (!song) return '';
+
+      return `
+        <div class="border-t p-4" style="background: ${config.surface_color}; border-color: #e2e8f0;">
+          <div class="max-w-4xl mx-auto">
+            <div class="flex items-center gap-6">
+              <!-- Song Info -->
+              <div class="flex items-center gap-4 flex-1 min-w-0">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, ${config.primary_action}, #8b5cf6);">
+                  <svg width="20" height="20" fill="white">
+                    <path d="M4 3v14l5-3v-8l5-3v14"/>
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <h4 class="font-semibold truncate" style="color: ${config.text_color};">${song.title}</h4>
+                  <p class="text-sm truncate" style="color: ${config.secondary_action};">${song.genre} • ${song.mood}</p>
+                </div>
+              </div>
+
+              <!-- Playback Controls -->
+              <div class="flex items-center gap-3">
+                <button onclick="togglePlay()" class="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-105" style="background: ${config.primary_action};">
+                  ${isPlaying ? `
+                    <svg width="20" height="20" fill="white"><rect x="6" y="4" width="3" height="12"/><rect x="11" y="4" width="3" height="12"/></svg>
+                  ` : `
+                    <svg width="20" height="20" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                  `}
+                </button>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex items-center gap-2">
+                <button class="p-2 rounded-lg transition-all hover:bg-slate-100" title="Download">
+                  <svg width="20" height="20" fill="none" stroke="${config.secondary_action}" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                  </svg>
+                </button>
+                <button class="p-2 rounded-lg transition-all hover:bg-slate-100" title="Share">
+                  <svg width="20" height="20" fill="none" stroke="${config.secondary_action}" stroke-width="2">
+                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                  </svg>
+                </button>
+                <button onclick="event.stopPropagation(); deleteSong(${currentSongIndex})" class="p-2 rounded-lg transition-all hover:bg-red-50" title="Delete">
+                  <svg width="20" height="20" fill="none" stroke="#ef4444" stroke-width="2">
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="mt-3 flex items-center gap-3">
+              <span class="mono text-xs" style="color: ${config.secondary_action};">1:23</span>
+              <div class="flex-1 h-1.5 rounded-full cursor-pointer" style="background: #e2e8f0;">
+                <div class="h-full rounded-full" style="width: 40%; background: ${config.primary_action};"></div>
+              </div>
+              <span class="mono text-xs" style="color: ${config.secondary_action};">${song.duration}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHeader() {
+      return `
+        <header class="px-6 py-4 border-b flex items-center justify-between" style="background: ${config.surface_color}; border-color: #e2e8f0;">
+          <div class="flex items-center gap-3 cursor-pointer" onclick="navigate('signin')">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, ${config.primary_action}, #8b5cf6);">
+              <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+                <path d="M24 4C24 4 36 8 36 24C36 40 24 44 24 44" stroke="white" stroke-width="4" stroke-linecap="round"/>
+                <path d="M24 4C24 4 12 8 12 24C12 40 24 44 24 44" stroke="white" stroke-width="4" stroke-linecap="round"/>
+                <circle cx="24" cy="24" r="4" fill="white"/>
+              </svg>
+            </div>
+            <span class="text-xl font-bold" style="color: ${config.text_color};">Cithara</span>
+          </div>
+          
+          <nav class="flex items-center gap-6">
+            <button onclick="navigate('create')" class="text-sm font-medium transition-all hover:opacity-70" style="color: ${currentPage === 'create' || currentPage === 'review' ? config.primary_action : config.secondary_action};">
+              Create
+            </button>
+            <button onclick="navigate('library')" class="text-sm font-medium transition-all hover:opacity-70" style="color: ${currentPage === 'library' ? config.primary_action : config.secondary_action};">
+              Library
+            </button>
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium text-white" style="background: ${config.secondary_action};">
+              U
+            </div>
+          </nav>
+        </header>
+      `;
+    }
+
+    function render() {
+      const app = document.getElementById('app');
+      
+      switch (currentPage) {
+        case 'signin':
+          app.innerHTML = renderSignIn();
+          break;
+        case 'create':
+          app.innerHTML = renderCreate();
+          break;
+        case 'review':
+          app.innerHTML = renderReview();
+          break;
+        case 'generating':
+          app.innerHTML = renderGenerating();
+          break;
+        case 'library':
+          app.innerHTML = renderLibrary();
+          break;
+        default:
+          app.innerHTML = renderSignIn();
+      }
+    }
+
+    async function onConfigChange(newConfig) {
+      config = { ...defaultConfig, ...newConfig };
+      
+      document.body.style.background = config.background_color;
+      
+      render();
+    }
+
+    function mapToCapabilities(cfg) {
+      return {
+        recolorables: [
+          {
+            get: () => cfg.background_color || defaultConfig.background_color,
+            set: (value) => { cfg.background_color = value; window.elementSdk.setConfig({ background_color: value }); }
+          },
+          {
+            get: () => cfg.surface_color || defaultConfig.surface_color,
+            set: (value) => { cfg.surface_color = value; window.elementSdk.setConfig({ surface_color: value }); }
+          },
+          {
+            get: () => cfg.text_color || defaultConfig.text_color,
+            set: (value) => { cfg.text_color = value; window.elementSdk.setConfig({ text_color: value }); }
+          },
+          {
+            get: () => cfg.primary_action || defaultConfig.primary_action,
+            set: (value) => { cfg.primary_action = value; window.elementSdk.setConfig({ primary_action: value }); }
+          },
+          {
+            get: () => cfg.secondary_action || defaultConfig.secondary_action,
+            set: (value) => { cfg.secondary_action = value; window.elementSdk.setConfig({ secondary_action: value }); }
+          }
+        ],
+        borderables: [],
+        fontEditable: {
+          get: () => cfg.font_family || 'Outfit',
+          set: (value) => { cfg.font_family = value; window.elementSdk.setConfig({ font_family: value }); }
+        },
+        fontSizeable: {
+          get: () => cfg.font_size || 16,
+          set: (value) => { cfg.font_size = value; window.elementSdk.setConfig({ font_size: value }); }
+        }
+      };
+    }
+
+    function mapToEditPanelValues(cfg) {
+      return new Map([
+        ["app_tagline", cfg.app_tagline || defaultConfig.app_tagline],
+        ["empty_library_message", cfg.empty_library_message || defaultConfig.empty_library_message]
+      ]);
+    }
+
+    // Initialize
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+    } else {
+      render();
+    }
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c1dc10a15d2d32a',t:'MTc2OTA3MTMwNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cithara - AI Music Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95em;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .songs-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .song-card {
+            background: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .song-card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .song-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .song-details {
+            font-size: 0.85em;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .song-detail-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background: #e8f0ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .songs-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Cithara</h1>
+            <p>AI-Powered Music Generation Platform</p>
+        </div>
+
+        <div class="content">
+            <!-- User Creation Form -->
+            <div class="card">
+                <h2>Create User</h2>
+                <div id="userAlert"></div>
+                <form id="userForm">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" placeholder="john_doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" placeholder="john@example.com" required>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn-primary">Create User</button>
+                        <button type="reset" class="btn-secondary">Clear</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Song Creation Form -->
+            <div class="card">
+                <h2>Create Song</h2>
+                <div id="songAlert"></div>
+                <form id="songForm">
+                    <div class="form-group">
+                        <label for="libId">Library ID (UUID)</label>
+                        <input type="text" id="libId" placeholder="Select from existing library" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="title">Song Title</label>
+                        <input type="text" id="title" placeholder="My Beautiful Song" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="genre">Genre</label>
+                        <select id="genre" required>
+                            <option value="">Select Genre</option>
+                            <option value="Rock">Rock</option>
+                            <option value="Pop">Pop</option>
+                            <option value="Jazz">Jazz</option>
+                            <option value="HipHop">HipHop</option>
+                            <option value="Country">Country</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="mood">Mood</label>
+                        <select id="mood" required>
+                            <option value="">Select Mood</option>
+                            <option value="Happy">Happy</option>
+                            <option value="Sad">Sad</option>
+                            <option value="Energetic">Energetic</option>
+                            <option value="Calm">Calm</option>
+                        </select>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn-primary">Create Song</button>
+                        <button type="reset" class="btn-secondary">Clear</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Songs Display -->
+            <div class="card full-width">
+                <h2>All Songs</h2>
+                <button class="btn-primary" onclick="loadSongs()" style="margin-bottom: 20px;">Refresh Songs</button>
+                <div id="songsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        // Load libraries for song creation
+        async function loadLibraries() {
+            try {
+                const response = await fetch(`${API_BASE}/libraries/`);
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                    const libId = data.results[0].id;
+                    document.getElementById('libId').value = libId;
+                    document.getElementById('libId').placeholder = `${libId} (${data.results[0].user.username}'s library)`;
+                }
+            } catch (error) {
+                console.error('Error loading libraries:', error);
+            }
+        }
+
+        // User Form Handler
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const alert = document.getElementById('userAlert');
+            
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/users/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email })
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                    showAlert(alert, `User "${username}" created successfully!`, 'success');
+                    document.getElementById('userForm').reset();
+                    loadLibraries();
+                } else {
+                    const error = await response.json();
+                    showAlert(alert, `Error: ${JSON.stringify(error)}`, 'error');
+                }
+            } catch (error) {
+                showAlert(alert, `Error: ${error.message}`, 'error');
+            }
+        });
+
+        // Song Form Handler
+        document.getElementById('songForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const alert = document.getElementById('songAlert');
+
+            const library = document.getElementById('libId').value;
+            const title = document.getElementById('title').value;
+            const genre = document.getElementById('genre').value;
+            const mood = document.getElementById('mood').value;
+
+            if (!library) {
+                showAlert(alert, 'Please load libraries first or create a user', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/songs/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        library,
+                        title,
+                        genre,
+                        mood,
+                        occasion: 'Other',
+                        singer_voice: 'Male',
+                        audio_format: 'MP3'
+                    })
+                });
+
+                if (response.ok) {
+                    const song = await response.json();
+                    showAlert(alert, `Song "${title}" created successfully!`, 'success');
+                    document.getElementById('songForm').reset();
+                    loadSongs();
+                } else {
+                    const error = await response.json();
+                    showAlert(alert, `Error: ${JSON.stringify(error)}`, 'error');
+                }
+            } catch (error) {
+                showAlert(alert, `Error: ${error.message}`, 'error');
+            }
+        });
+
+        // Load and display songs
+        async function loadSongs() {
+            const container = document.getElementById('songsContainer');
+            container.innerHTML = '<div class="loading"><span class="spinner"></span>Loading songs...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/songs/`);
+                const data = await response.json();
+
+                if (data.results && data.results.length > 0) {
+                    container.innerHTML = '<div class="songs-list">' + 
+                        data.results.map(song => `
+                            <div class="song-card">
+                                <h3>${song.title}</h3>
+                                <div class="song-details">
+                                    <div class="song-detail-line">
+                                        <span class="detail-label">Genre:</span>
+                                        <span>${song.genre}</span>
+                                    </div>
+                                    <div class="song-detail-line">
+                                        <span class="detail-label">Mood:</span>
+                                        <span>${song.mood}</span>
+                                    </div>
+                                    <div class="song-detail-line">
+                                        <span class="detail-label">Status:</span>
+                                        <span>${song.status}</span>
+                                    </div>
+                                    <div class="song-detail-line">
+                                        <span class="detail-label">Duration:</span>
+                                        <span>${song.duration ? song.duration + 's' : 'N/A'}</span>
+                                    </div>
+                                    <div class="song-detail-line">
+                                        <span class="detail-label">Format:</span>
+                                        <span>${song.audio_format}</span>
+                                    </div>
+                                    <div class="song-detail-line" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                                        <span class="detail-label">Created:</span>
+                                        <span>${new Date(song.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('') + 
+                        '</div>';
+                } else {
+                    container.innerHTML = '<div class="info-box">No songs found. Create one to get started!</div>';
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="alert alert-error">Error loading songs: ${error.message}</div>`;
+            }
+        }
+
+        // Helper: Show alert message
+        function showAlert(element, message, type) {
+            element.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                element.innerHTML = '';
+            }, 5000);
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            loadLibraries();
+            loadSongs();
+        });
+    </script>
+</body>
+</html>

@@ -88,8 +88,10 @@ venv\Scripts\activate
 ### Step 3: Install Dependencies
 
 ```bash
-pip install django==6.0.2
+pip install django==6.0.2 djangorestframework==3.14.0
 ```
+
+The `djangorestframework` package is required for REST API endpoints.
 
 ### Step 4: Run Migrations
 
@@ -128,6 +130,238 @@ The server will start at `http://127.0.0.1:8000/`
 1. Navigate to `http://127.0.0.1:8000/admin/`
 2. Log in with the superuser credentials created in Step 5
 3. Manage users, libraries, songs, and share links
+
+## REST API Documentation
+
+> The REST API provides programmatic access to all CRUD operations and is implemented using Django REST Framework.
+
+### API Base URL
+```
+http://127.0.0.1:8000/api/
+```
+
+### API Endpoints
+
+#### Users
+
+**List all users**
+```
+GET /api/users/
+```
+
+**Create a new user**
+```
+POST /api/users/
+Content-Type: application/json
+
+{
+  "username": "john_doe",
+  "email": "john@example.com"
+}
+```
+
+**Retrieve a specific user**
+```
+GET /api/users/{id}/
+```
+
+**Update a user**
+```
+PUT /api/users/{id}/
+Content-Type: application/json
+
+{
+  "username": "jane_doe",
+  "email": "jane@example.com"
+}
+```
+
+**Delete a user**
+```
+DELETE /api/users/{id}/
+```
+
+---
+
+#### Libraries
+
+**List all libraries**
+```
+GET /api/libraries/
+```
+
+**Create a new library**
+```
+POST /api/libraries/
+Content-Type: application/json
+
+{
+  "user": "user-id-uuid"
+}
+```
+
+**Retrieve a specific library**
+```
+GET /api/libraries/{id}/
+```
+
+**Get all songs in a library**
+```
+GET /api/libraries/{id}/songs/
+```
+
+**Delete a library**
+```
+DELETE /api/libraries/{id}/
+```
+
+---
+
+#### Songs
+
+**List all songs**
+```
+GET /api/songs/
+```
+
+**Create a new song**
+```
+POST /api/songs/
+Content-Type: application/json
+
+{
+  "library": "library-id-uuid",
+  "title": "Morning Coffee Mood",
+  "genre": "Jazz",
+  "mood": "Calm",
+  "occasion": "Study",
+  "singer_voice": "Male",
+  "prompt": "Smooth jazz instrumental for morning relaxation",
+  "status": "Queued",
+  "audio_format": "MP3"
+}
+```
+
+**Retrieve a specific song**
+```
+GET /api/songs/{id}/
+```
+
+**Update a song**
+```
+PUT /api/songs/{id}/
+Content-Type: application/json
+
+{
+  "title": "Updated Song Title",
+  "status": "Generating"
+}
+```
+
+**Regenerate a song** (reset status to Queued)
+```
+POST /api/songs/{id}/regenerate/
+```
+
+**Delete a song** (cascade deletes share link)
+```
+DELETE /api/songs/{id}/
+```
+
+---
+
+#### Share Links
+
+**List all share links**
+```
+GET /api/share-links/
+```
+
+**Create a share link for a song**
+```
+POST /api/share-links/
+Content-Type: application/json
+
+{
+  "song": "song-id-uuid"
+}
+```
+
+**Retrieve a share link**
+```
+GET /api/share-links/{id}/
+```
+
+**Access a shared song by token**
+```
+GET /api/share-links/by-token/?token=YOUR_TOKEN_HERE
+```
+
+Example response:
+```json
+{
+  "id": "123e4567-e89b-12d3-a456-426614174000",
+  "library": "...",
+  "title": "Morning Coffee Mood",
+  "genre": "Jazz",
+  "mood": "Calm",
+  "status": "Completed",
+  "audio_file_url": "https://example.com/audio.mp3",
+  "share_link": {
+    "id": "...",
+    "token": "abc123xyz",
+    "created_at": "2024-03-22T10:30:00Z"
+  }
+}
+```
+
+---
+
+### API Response Format
+
+All responses are in JSON format:
+
+**Success Response** (2xx status code):
+```json
+{
+  "id": "uuid",
+  "field1": "value1",
+  "field2": "value2",
+  "created_at": "2024-03-22T10:30:00Z"
+}
+```
+
+**Error Response** (4xx/5xx status code):
+```json
+{
+  "error": "Error description"
+}
+```
+
+### Testing the API
+
+You can test the API endpoints using:
+- **curl**
+- **Postman** 
+- **Python requests**
+- **VS Code REST Client**
+
+Example with curl:
+```bash
+# Create a user
+curl -X POST http://127.0.0.1:8000/api/users/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "testuser", "email": "test@example.com"}'
+
+# List all users
+curl http://127.0.0.1:8000/api/users/
+
+# Get a user by ID
+curl http://127.0.0.1:8000/api/users/your-user-uuid/
+
+# Delete a user
+curl -X DELETE http://127.0.0.1:8000/api/users/your-user-uuid/
+```
 
 ## CRUD Operations via Django Admin
 
