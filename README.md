@@ -459,6 +459,12 @@ Genre, Mood, etc. use Django TextChoices to:
 ### 4. Minimal Attributes
 Only attributes required by domain constraints are included (no over-engineering)
 
+### 5. Deviation from Domain Model: AudioFormatType
+An `AudioFormatType` enumeration (MP3, M4A, WAV) was added to the `Song` entity despite not being present in the original domain model diagram. The justification for this addition is:
+- **Technical completeness:** Real-world music applications need to know the audio file type to ensure correct frontend playback (e.g., setting the correct `type` attribute in HTML5 `<audio>` tags).
+- **Data integrity:** By making this an Enum, we restrict the system to only accept standard formats we know the AI generation engine supports, rather than a free-text field that could lead to broken audio features.
+- **User experience:** Explicitly declaring the format allows the application to inform users of the file type before downloading or sharing.
+
 ## Domain Constraints
 
 The model enforces these business rules:
