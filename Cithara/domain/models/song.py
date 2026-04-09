@@ -61,6 +61,12 @@ class Song(models.Model):
         validators=[MaxLengthValidator(1000)],
         help_text="Optional extended prompt (max 1000 characters)"
     )
+    provider_task_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Task ID from the generation provider (e.g., Suno)"
+    )
     status = models.CharField(
         max_length=20,
         choices=GenerationStatus.choices,

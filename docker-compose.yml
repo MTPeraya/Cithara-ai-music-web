@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./Cithara
+      dockerfile: Dockerfile
+    container_name: cithara-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # Automatically uses mock if SUNO_API_KEY is missing or if strategy is overridden
+      - GENERATOR_STRATEGY=${GENERATOR_STRATEGY:-mock}
+      - SUNO_API_KEY=${SUNO_API_KEY:-}
+    volumes:
+      - ./Cithara:/app
+    networks:
+      - cithara-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cithara-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - cithara-network
+    depends_on:
+      - backend
+
+networks:
+  cithara-network:
+    driver: bridge

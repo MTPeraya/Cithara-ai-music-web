@@ -78,20 +78,55 @@ class SongViewSet(viewsets.ModelViewSet):
     queryset = Song.objects.all()
     serializer_class = SongSerializer
     
+    def perform_create(self, serializer):
+        """
+        Create a song and automatically trigger generation using the active strategy.
+        """
+        song = serializer.save()
+        from .strategies.factory import get_generator_strategy
+        strategy = get_generator_strategy()
+        strategy.generate(song)
+    
     @action(detail=True, methods=['post'])
     def regenerate(self, request, pk=None):
         """
-        Regenerate a song by resetting its status to QUEUED.
+        Regenerate a song by triggering the generation strategy again.
         
         This action is useful when a previous generation failed.
         """
         song = self.get_object()
         from .models.choices.generation_status import GenerationStatus
+        from .strategies.factory import get_generator_strategy
+        
         song.status = GenerationStatus.QUEUED
         song.audio_file_url = ""
+        song.provider_task_id = ""
         song.save()
+        
+        strategy = get_generator_strategy()
+        strategy.generate(song)
+        
         serializer = self.get_serializer(song)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def check_status(self, request, pk=None):
+        """
+        Poll the generation provider for the latest status.
+        """
+        song = self.get_object()
+        from .strategies.factory import get_generator_strategy
+        
+        strategy = get_generator_strategy()
+        result = strategy.check_status(song)
+        
+        # Will return the latest state from the DB since check_status 
+        # usually updates and saves the song.
+        serializer = self.get_serializer(song)
+        return Response({
+            "song": serializer.data,
+            "provider_result": result
+        })
 
 
 class ShareLinkViewSet(viewsets.ModelViewSet):

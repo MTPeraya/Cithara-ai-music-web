@@ -533,5 +533,65 @@ python3 manage.py makemigrations domain
 python3 manage.py createsuperuser
 ```
 
+## Strategy Pattern for Song Generation
+
+The application uses the **Strategy Pattern** to handle multiple interchangeable song generation implementations. Strategy logic is contained in `Cithara/domain/strategies/`.
+
+There are two main strategies:
+1. **Mock Strategy**: Used for local development. Completes generation instantly with a mock placeholder audio link.
+2. **Suno API Strategy**: Uses `requests` to trigger generation via api.sunoapi.org. Generates a task ID and allows polling for status completion.
+
+### How to run Mock mode
+By default, the strategy falls back to `mock`. You can also explicitly set it as an environment variable before running the Django server:
+
+```bash
+# On Mac/Linux
+export GENERATOR_STRATEGY=mock
+python3 manage.py runserver
+
+# On Windows (PowerShell)
+$env:GENERATOR_STRATEGY="mock"
+python3 manage.py runserver
+```
+
+### How to run Suno mode
+To run the Suno API integration, you must export the strategy mode as well as your Suno API authorization token. The application expects the token to be standard string without `Bearer ` prepended (the application handles adding that).
+
+**CRITICAL: NEVER COMMIT YOUR API KEY TO THE REPOSITORY**
+
+```bash
+# On Mac/Linux
+export GENERATOR_STRATEGY=suno
+export SUNO_API_KEY="your-suno-api-key-here"
+python3 manage.py runserver
+
+# On Windows (PowerShell)
+$env:GENERATOR_STRATEGY="suno"
+$env:SUNO_API_KEY="your-suno-api-key-here"
+python3 manage.py runserver
+```
+
+### Where to put the API key
+For this exercise, simple terminal exports are used above so you never accidentally commit your key. If desired, you can integrate with `python-dotenv` and place your `SUNO_API_KEY` into a local `.env` hidden file in the project. Do not commit `.env` into version control.
+
+## Running with Docker (1-Command Build)
+
+You can run the entire application (both Frontend and Backend) using Docker Compose. This completely isolates the environment, installing both Python and Node.js dependencies natively.
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+2. Run the following command from the root `Cithara-ai-music-web` folder:
+
+```bash
+docker-compose up --build
+```
+
+**Accessing Dockerized App:**
+- **Frontend UI**: `http://localhost:5173`
+- **Backend API**: `http://localhost:8000/api`
+
+If you would like to run the Dockerized app using the **Suno Strategy Mode**, simply pass your environment variables securely to docker-compose inline:
+```bash
+GENERATOR_STRATEGY=suno SUNO_API_KEY="your-key-here" docker-compose up --build
+```
 
 
