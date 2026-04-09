@@ -1,6 +1,6 @@
 // API interaction logic using fetch
 
-const API_BASE = 'http://localhost:8000/api'; // Assuming Django is running on 8000
+const API_BASE = 'http://localhost:8000/api'; // Assuming Django is running on 8000 (Check the docker-compose.yml file)
 
 function getCSRFToken() {
   let cookieValue = null;
