@@ -59,77 +59,90 @@ Represents a unique shareable link for a song.
 
 ## Installation & Setup
 
-### Prerequisites
+You can run Cithara either natively on your machine (Solo Setup) or using Docker.
 
-- Python 3.9+
-- pip (Python package manager)
-- Git
+### Option A: Solo Setup (Manual Implementation)
 
-### Step 1: Clone the Repository
+This method is recommended for active development of either the frontend or backend components.
 
+#### 1. Prerequisites
+- **Python 3.10+**
+- **Node.js 18+** & **npm**
+- **Git**
+
+#### 2. Backend Setup (Django)
 ```bash
+# Clone the repository
 git clone https://github.com/MTPeraya/Cithara-ai-music-web.git
 cd Cithara-ai-music-web
-```
 
-### Step 2: Create a Virtual Environment (Recommended)
-
-```bash
-# Create virtual environment
+# Create and activate virtual environment
 python3 -m venv venv
+source venv/bin/activate  # Windows: venv\\Scripts\\activate
 
-# Activate virtual environment
-# On macOS/Linux:
-source venv/bin/activate
-# On Windows:
-venv\Scripts\activate
-```
-
-### Step 3: Install Dependencies
-
-```bash
-pip install django==6.0.2 djangorestframework==3.14.0
-```
-
-The `djangorestframework` package is required for REST API endpoints.
-
-### Step 4: Run Migrations
-
-Navigate to the project directory containing `manage.py`:
-
-```bash
+# Install dependencies
 cd Cithara
+pip install -r requirements.txt
+
+# Run migrations
 python3 manage.py migrate
-```
 
-This creates the SQLite database with all necessary tables and indexes.
-
-### Step 5: Create a Superuser (Admin Account)
-
-```bash
+# Create admin account
 python3 manage.py createsuperuser
-```
 
-Follow the prompts to create an admin account. Example:
-```
-Username: admin
-Email: admin@example.com
-Password: (secure password)
-```
-
-### Step 6: Start the Development Server
-
-```bash
+# Start backend server
 python3 manage.py runserver
 ```
+The backend will be available at `http://127.0.0.1:8000/`.
 
-The server will start at `http://127.0.0.1:8000/`
+#### 3. Frontend Setup (React + Vite)
+Open a new terminal window:
+```bash
+cd Cithara-ai-music-web/Frontend
 
-### Step 7: Access Django Admin
+# Install dependencies
+npm install
 
-1. Navigate to `http://127.0.0.1:8000/admin/`
-2. Log in with the superuser credentials created in Step 5
-3. Manage users, libraries, songs, and share links
+# Start development server
+npm run dev
+```
+The frontend will be available at `http://localhost:5173`.
+
+---
+
+### Option B: Docker Setup (Fastest Start)
+
+This method runs everything in isolated containers. You only need Docker installed.
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+2. Run the following command from the root folder:
+```bash
+docker-compose up --build
+```
+
+**Accessing Dockerized App:**
+- **Frontend UI**: `http://localhost:5173`
+- **Backend API**: `http://localhost:8000/api`
+- **Backend Admin**: `http://localhost:8000/admin`
+
+---
+
+## Environment Configuration
+
+Cithara uses environment variables for strategy selection and API keys.
+
+1. Copy `.env.example` to `.env` in the root directory.
+2. Edit `.env` to set your desired strategy:
+   - `GENERATOR_STRATEGY=mock`: (Default) Uses local mock generation.
+   - `GENERATOR_STRATEGY=suno`: Uses real AI generation (requires API key).
+
+```bash
+# Internal strategy configuration
+GENERATOR_STRATEGY=mock
+SUNO_API_KEY=your_key_here
+```
+
+---
 
 ## REST API Documentation
 
@@ -508,6 +521,7 @@ The domain layer is designed to support:
 - Batch operations
 - Event-driven architecture
 
+
 ## Troubleshooting
 
 ### Database Locked Error
@@ -532,66 +546,3 @@ python3 manage.py makemigrations domain
 # Create a new superuser
 python3 manage.py createsuperuser
 ```
-
-## Strategy Pattern for Song Generation
-
-The application uses the **Strategy Pattern** to handle multiple interchangeable song generation implementations. Strategy logic is contained in `Cithara/domain/strategies/`.
-
-There are two main strategies:
-1. **Mock Strategy**: Used for local development. Completes generation instantly with a mock placeholder audio link.
-2. **Suno API Strategy**: Uses `requests` to trigger generation via api.sunoapi.org. Generates a task ID and allows polling for status completion.
-
-### How to run Mock mode
-By default, the strategy falls back to `mock`. You can also explicitly set it as an environment variable before running the Django server:
-
-```bash
-# On Mac/Linux
-export GENERATOR_STRATEGY=mock
-python3 manage.py runserver
-
-# On Windows (PowerShell)
-$env:GENERATOR_STRATEGY="mock"
-python3 manage.py runserver
-```
-
-### How to run Suno mode
-To run the Suno API integration, you must export the strategy mode as well as your Suno API authorization token. The application expects the token to be standard string without `Bearer ` prepended (the application handles adding that).
-
-**CRITICAL: NEVER COMMIT YOUR API KEY TO THE REPOSITORY**
-
-```bash
-# On Mac/Linux
-export GENERATOR_STRATEGY=suno
-export SUNO_API_KEY="your-suno-api-key-here"
-python3 manage.py runserver
-
-# On Windows (PowerShell)
-$env:GENERATOR_STRATEGY="suno"
-$env:SUNO_API_KEY="your-suno-api-key-here"
-python3 manage.py runserver
-```
-
-### Where to put the API key
-For this exercise, simple terminal exports are used above so you never accidentally commit your key. If desired, you can integrate with `python-dotenv` and place your `SUNO_API_KEY` into a local `.env` hidden file in the project. Do not commit `.env` into version control.
-
-## Running with Docker (1-Command Build)
-
-You can run the entire application (both Frontend and Backend) using Docker Compose. This completely isolates the environment, installing both Python and Node.js dependencies natively.
-
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/).
-2. Run the following command from the root `Cithara-ai-music-web` folder:
-
-```bash
-docker-compose up --build
-```
-
-**Accessing Dockerized App:**
-- **Frontend UI**: `http://localhost:5173`
-- **Backend API**: `http://localhost:8000/api`
-
-If you would like to run the Dockerized app using the **Suno Strategy Mode**, simply pass your environment variables securely to docker-compose inline:
-```bash
-GENERATOR_STRATEGY=suno SUNO_API_KEY="your-key-here" docker-compose up --build
-```
-
-
