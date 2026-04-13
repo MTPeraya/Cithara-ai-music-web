@@ -18,6 +18,8 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
 
     def _get_headers(self) -> dict:
         token = getattr(settings, "SUNO_API_KEY", "")
+        if not token:
+            logger.warning("SUNO_API_KEY is not set in settings. API calls will likely fail.")
         return {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -27,11 +29,21 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
         """
         Calls Suno 'Generate Music' endpoint.
         """
+        # Prepare style tags from genre, mood and occasion
+        style_tags = f"{song.get_genre_display()}, {song.get_mood_display()}, {song.get_occasion_display()}"
+        
         payload = {
-            "prompt": song.prompt or f"A {song.get_genre_display()} song for {song.get_occasion_display()} with a {song.get_mood_display()} mood",
+            "customMode": True,
+            "instrumental": False,
+            "style": style_tags,
             "title": song.title,
-            "make_instrumental": False
+            "prompt": song.prompt or f"A high-quality song with musical style {style_tags}",
+            "model": "V3_5",
+            "callBackUrl": "https://example.com/callback"
         }
+        
+        logger.info(f"Triggering Suno AI generation for '{song.title}' with style: {style_tags}")
+        # logger.debug(f"Suno Payload: {payload}") # Uncomment for deep debugging
         
         # Mark as generating
         song.status = GenerationStatus.GENERATING
@@ -46,6 +58,14 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
             )
             response.raise_for_status()
             data = response.json()
+            
+            # Check for API wrapper errors (HTTP 200 but JSON contains error code)
+            api_code = data.get("code")
+            if api_code is not None and api_code != 200:
+                logger.error(f"Suno API returned error code {api_code} in response: {data}")
+                song.status = GenerationStatus.FAILED
+                song.save()
+                return {"error": data.get("msg", "Unknown API Error"), "status": song.status}
             
             # Extract taskId (SunoAPI usually returns taskId or similar in response)
             # Assuming {'taskId': '...'} or {'data': {'taskId': '...'}}
@@ -70,8 +90,19 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
                 song.save()
                 return {"error": "No task_id returned from Suno API"}
 
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code in [401, 403]:
+                logger.error(f"Suno API Authentication Error: Check your SUNO_API_KEY. Response: {e.response.text}")
+                error_msg = "Invalid API Key. Please check your SUNO_API_KEY configuration."
+            else:
+                logger.error(f"Suno API HTTP Error: {str(e)} - {e.response.text}")
+                error_msg = f"Suno API returned {e.response.status_code}"
+            
+            song.status = GenerationStatus.FAILED
+            song.save()
+            return {"error": error_msg, "status": song.status}
         except Exception as e:
-            logger.error(f"Error during Suno API generation: {str(e)}")
+            logger.error(f"Unexpected error during Suno API generation: {str(e)}")
             song.status = GenerationStatus.FAILED
             song.save()
             return {"error": str(e), "status": song.status}
@@ -94,6 +125,14 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
             response.raise_for_status()
             data = response.json()
             
+            # Check for API wrapper errors (HTTP 200 but JSON contains error code)
+            api_code = data.get("code")
+            if api_code is not None and api_code != 200:
+                logger.error(f"Suno API returned error code {api_code} in record-info: {data}")
+                song.status = GenerationStatus.FAILED
+                song.save()
+                return {"error": data.get("msg", "Unknown API error"), "status": song.status}
+            
             # data might be the task info itself or a list. Let's find status.
             task_info = data.get("data", data)
             
@@ -108,7 +147,22 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
                 song.status = GenerationStatus.GENERATING
             elif suno_status == "SUCCESS":
                 song.status = GenerationStatus.COMPLETED
-                song.audio_file_url = task_info.get("audioUrl", "") or task_info.get("audio_url", "")
+                
+                # Extract audio URL - typically nested in response.sunoData
+                if "response" in task_info and "sunoData" in task_info["response"]:
+                    suno_data = task_info["response"]["sunoData"]
+                    if isinstance(suno_data, list) and len(suno_data) > 0:
+                        first_track = suno_data[0]
+                        # Prefer the official CDN sourceAudioUrl as it doesn't block cross-origin or require cookies
+                        song.audio_file_url = first_track.get("sourceAudioUrl") or first_track.get("audioUrl", "")
+                        # Try to get duration if available
+                        if "duration" in first_track:
+                            song.duration = int(first_track["duration"])
+                
+                # Fallback in case the schema changes
+                if not song.audio_file_url:
+                    song.audio_file_url = task_info.get("audioUrl", "") or task_info.get("audio_url", "")
+                    
             elif suno_status in ["FAILED", "ERROR"]:
                 song.status = GenerationStatus.FAILED
                 

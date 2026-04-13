@@ -31,27 +31,40 @@ export default function CreateFlow({ currentPage, setCurrentPage, currentLibrary
     setGenerationProgress(0);
     
     try {
-      await api.createSong(currentLibraryId, formData);
-      simulateProgress();
+      const song = await api.createSong(currentLibraryId, formData);
+      pollProgress(song.id);
     } catch (e) {
       alert(e.message);
       setCurrentPage('create');
     }
   };
 
-  const simulateProgress = () => {
+  const pollProgress = (songId) => {
     let progress = 0;
-    const interval = setInterval(() => {
-      progress += Math.random() * 15;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
-        setTimeout(() => {
-          onGenerationComplete();
-        }, 500);
+    const interval = setInterval(async () => {
+      try {
+        const data = await api.checkStatus(songId);
+        const songStatus = data.song.status;
+
+        // Visual progress increment (keep it moving for UX)
+        progress = Math.min(progress + (Math.random() * 5), 98);
+        setGenerationProgress(progress);
+
+        if (songStatus === 'completed') {
+          setGenerationProgress(100);
+          clearInterval(interval);
+          setTimeout(() => {
+            onGenerationComplete();
+          }, 800);
+        } else if (songStatus === 'failed') {
+          clearInterval(interval);
+          alert('Song generation failed. Please try again.');
+          setCurrentPage('create');
+        }
+      } catch (e) {
+        console.error("Polling error:", e);
       }
-      setGenerationProgress(progress);
-    }, 300);
+    }, 5000); // Poll every 5 seconds for Suno
   };
 
   const nextStep = () => {
@@ -65,13 +78,13 @@ export default function CreateFlow({ currentPage, setCurrentPage, currentLibrary
       <div className="flex items-center justify-center gap-2 mb-10">
         {steps.map((s, i) => (
           <div key={s.num} className="flex items-center">
-            <div className="flex items-center gap-2">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${step >= s.num ? 'text-white bg-indigo-500' : 'text-slate-400 bg-white border-2 border-slate-200'}`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all shadow-sm ${step >= s.num ? 'text-white btn-primary' : 'text-slate-400 bg-white border-2 border-slate-100'}`}>
                 {step > s.num ? '✓' : s.num}
               </div>
-              <span className={`text-sm font-medium hidden sm:block ${step >= s.num ? 'text-slate-800' : 'text-slate-500'}`}>{s.label}</span>
+              <span className={`text-sm font-semibold hidden sm:block ${step >= s.num ? 'text-slate-900' : 'text-slate-400'}`}>{s.label}</span>
             </div>
-            {i < steps.length - 1 && <div className={`w-12 h-0.5 mx-3 ${step > s.num ? 'bg-indigo-500' : 'bg-slate-200'}`}></div>}
+            {i < steps.length - 1 && <div className={`w-12 h-0.5 mx-3 rounded-full ${step > s.num ? 'bg-indigo-500' : 'bg-slate-100'}`}></div>}
           </div>
         ))}
       </div>
@@ -79,21 +92,21 @@ export default function CreateFlow({ currentPage, setCurrentPage, currentLibrary
   };
 
   if (currentPage === 'generating') {
-    const messages = [ "Submitting to Django backend...", "Composing melodies...", "Arranging instruments...", "Persisting to database...", "Mixing and mastering...", "Final touches..." ];
+    const messages = [ "Analyzing your story...", "Composing melodies...", "Arranging instruments...", "Adding vocals...", "Mixing and mastering...", "Final touches..." ];
     const currentMessage = messages[Math.min(Math.floor(generationProgress / 16.6), 5)];
 
     return (
-      <div className="flex-1 flex items-center justify-center h-full">
+      <div className="flex-1 flex items-center justify-center h-full bg-slate-50/50">
         <div className="text-center max-w-md mx-auto px-6 animate-fade-in">
-          <div className="flex items-end justify-center gap-1 h-16 mb-8">
-            {[1,2,3,4,5].map(n => <div key={n} className="w-3 rounded-full wave-bar bg-indigo-500"></div>)}
+          <div className="flex items-end justify-center gap-1.5 h-16 mb-10">
+            {[1,2,3,4,5].map(n => <div key={n} className="w-3 rounded-full wave-bar bg-gradient-to-t from-indigo-500 to-purple-500 shadow-sm shadow-indigo-100"></div>)}
           </div>
-          <h2 className="text-2xl font-bold mb-2 text-slate-800">Creating Your Song</h2>
-          <p className="mb-8 text-slate-500">{currentMessage}</p>
-          <div className="w-full h-3 rounded-full overflow-hidden mb-4 bg-slate-200">
-            <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300" style={{ width: `${generationProgress}%` }}></div>
+          <h2 className="text-3xl font-bold mb-3 text-slate-900 tracking-tight">Creating Your Song</h2>
+          <p className="mb-10 text-slate-500 font-medium">{currentMessage}</p>
+          <div className="w-full h-3 rounded-full overflow-hidden mb-4 bg-slate-200 shadow-inner">
+            <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 bg-[length:200%_100%] animate-[gradient_2s_linear_infinite] transition-all duration-300" style={{ width: `${generationProgress}%` }}></div>
           </div>
-          <p className="mono text-sm font-semibold text-indigo-500">{Math.round(generationProgress)}%</p>
+          <p className="mono text-sm font-bold text-indigo-600 tracking-wider transition-all">{Math.round(generationProgress)}%</p>
         </div>
       </div>
     );

@@ -106,6 +106,12 @@ export const api = {
     return await res.json();
   },
 
+  checkStatus: async (songId) => {
+    const res = await fetch(`${API_BASE}/songs/${songId}/check_status/`);
+    if (!res.ok) throw new Error("Failed to check status");
+    return await res.json();
+  },
+
   deleteSong: async (songId) => {
     const res = await fetch(`${API_BASE}/songs/${songId}/`, {
       method: 'DELETE',

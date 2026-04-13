@@ -8,10 +8,8 @@ services:
     container_name: cithara-backend
     ports:
       - "8000:8000"
-    environment:
-      # Automatically uses mock if SUNO_API_KEY is missing or if strategy is overridden
-      - GENERATOR_STRATEGY=${GENERATOR_STRATEGY:-mock}
-      - SUNO_API_KEY=${SUNO_API_KEY:-}
+    env_file:
+      - .env
     volumes:
       - ./Cithara:/app
     networks:

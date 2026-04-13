@@ -29,6 +29,7 @@ function App() {
         mood: song.mood,
         status: song.status,
         date: new Date(song.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        audio_url: song.audio_file_url,
         duration: song.duration ? `${Math.floor(song.duration/60)}:${String(song.duration%60).padStart(2, '0')}` : '0:00'
       })));
     } catch (e) { console.error(e); }
