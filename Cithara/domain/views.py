@@ -75,8 +75,24 @@ class SongViewSet(viewsets.ModelViewSet):
     Also provides:
     - POST /api/songs/{id}/regenerate/ - Regenerate a song
     """
-    queryset = Song.objects.all()
     serializer_class = SongSerializer
+
+    def get_queryset(self):
+        """
+        Filter songs by library if library_id is provided in query parameters.
+        Otherwise, return all songs (can be further restricted for security).
+        """
+        queryset = Song.objects.all()
+        library_id = self.request.query_params.get('library', None)
+        if library_id:
+            queryset = queryset.filter(library_id=library_id)
+        
+        # If no library filter is provided, we return an empty queryset 
+        # to prevent accidental leakage of all songs.
+        elif not self.request.user.is_staff:
+            return Song.objects.none()
+            
+        return queryset
     
     def perform_create(self, serializer):
         """

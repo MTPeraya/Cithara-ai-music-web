@@ -39,7 +39,8 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
             "title": song.title,
             "prompt": song.prompt or f"A high-quality song with musical style {style_tags}",
             "model": "V3_5",
-            "callBackUrl": "https://example.com/callback"
+            # callBackUrl is omitted — we use frontend polling instead.
+            # Suno cannot reach localhost, so a webhook would not work in development.
         }
         
         logger.info(f"Triggering Suno AI generation for '{song.title}' with style: {style_tags}")

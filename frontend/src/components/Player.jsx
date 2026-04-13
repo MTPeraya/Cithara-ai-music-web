@@ -67,12 +67,12 @@ export default function Player({ song, isPlaying, setIsPlaying, onDelete }) {
 
   return (
     <div className="border-t p-6 bg-white/80 backdrop-blur-md border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-50 relative">
+      {/* Hidden audio element — playback is controlled via the custom UI below */}
       <audio 
         ref={audioRef}
         src={song.audio_url}
         referrerPolicy="no-referrer"
-        controls
-        className="w-full mb-4 opacity-50"
+        className="hidden"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleTimeUpdate}
         onEnded={() => setIsPlaying(false)}

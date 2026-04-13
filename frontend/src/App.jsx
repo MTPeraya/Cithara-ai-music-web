@@ -17,11 +17,13 @@ function App() {
     if (currentPage === 'library') {
       loadLibrary();
     }
-  }, [currentPage]);
+  }, [currentPage, currentLibraryId]);
 
   const loadLibrary = async () => {
+    if (!currentLibraryId) return; // Wait until library id is set
     try {
-      const data = await api.getSongs();
+      // Pass currentLibraryId to fetch only songs for this library
+      const data = await api.getSongs(currentLibraryId);
       setLibrary(data.map(song => ({
         id: song.id,
         title: song.title,

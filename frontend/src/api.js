@@ -55,9 +55,11 @@ export const api = {
       if (libRes.ok) {
         const libData = await libRes.json();
         const libsList = libData.results || libData;
-        const userLib = libsList.find(l => l.user === userId || (l.user && l.user.id === userId));
+        let userLib = libsList.find(l => l.user === userId || (l.user && l.user.id === userId));
         
-        if (userLib) return userLib.id;
+        // If not found in the list, we might want to try a direct fetch if we had a filtered endpoint
+        // But for now, we'll stick to search or create
+        if (userLib) return typeof userLib === 'object' ? userLib.id : userLib;
         
         const createLib = await fetch(`${API_BASE}/libraries/`, {
           method: 'POST',
@@ -73,8 +75,13 @@ export const api = {
     return null;
   },
 
-  getSongs: async () => {
-    const response = await fetch(`${API_BASE}/songs/`);
+  getSongs: async (libraryId) => {
+    if (!libraryId) {
+      console.warn("getSongs called without libraryId");
+      return [];
+    }
+    const url = `${API_BASE}/libraries/${libraryId}/songs/`;
+    const response = await fetch(url);
     if (response.ok) {
       const data = await response.json();
       return Array.isArray(data) ? data : (data.results || []);
