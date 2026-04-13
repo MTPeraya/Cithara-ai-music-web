@@ -1,50 +1,53 @@
-# CITHARA - Developer Quick Start Guide
+# 🎸 Cithara - Developer Quick Start Guide
 
-This guide provides developers with the necessary steps to set up, run, and test Cithara.
-
-## 1. Development Paths
-
-You can develop Cithara using two primary methods:
-
-- **Path A: Solo (Native)** - Run everything directly on your machine. Best for rapid iteration and debugging.
-- **Path B: Docker** - Run everything in containers. Best for consistent environments and testing deployments.
+> **Transforming prompts into music.** This guide provides everything a developer needs to set up, run, and contribute to the Cithara AI Music Generator.
 
 ---
 
-## 2. Path A: Solo (Native) Setup
+## 🚀 Choose Your Path
 
-### Prerequisites
-- **Python 3.10+**
-- **Node.js 18+** (with `npm`)
+Cithara supports two primary development workflows. Choose the one that fits your needs:
+
+- **Path A: Solo (Native)** - Best for rapid iteration and deep debugging with local IDE tools.
+- **Path B: Docker** - Best for a consistent environment that "just works" out of the box.
+
+---
+
+## 🛠️ Path A: Solo (Native) Setup
+
+### 1. Prerequisites
+- **Python 3.10+** (Django Backend)
+- **Node.js 18+** & `npm` (React Frontend)
 - **Git**
 
-### Step 1: Clone and Environment
+### 2. Environment Initialization
 ```bash
+# Clone the repository
 git clone https://github.com/MTPeraya/Cithara-ai-music-web.git
 cd Cithara-ai-music-web
 
-# Create virtual environment
+# Setup Python Virtual Environment
 python3 -m venv venv
-source venv/bin/activate  # Windows: venv\\Scripts\\activate
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# Setup environment variables
+# Configure Environment Variables
 cp .env.example .env
-# Edit .env to set GENERATOR_STRATEGY and SUNO_API_KEY
+# Open .env and set your preferences!
 ```
 
-### Step 2: Backend Setup (Django)
+### 3. Backend (Django)
 ```bash
 cd Cithara
 pip install -r requirements.txt
 
-# Database initialization
+# Database and Admin
 python3 manage.py migrate
-python3 manage.py createsuperuser  # Set admin/admin
+python3 manage.py createsuperuser  # Recommended: admin/admin
 python3 manage.py runserver
 ```
 
-### Step 3: Frontend Setup (Vite)
-Open a new terminal:
+### 4. Frontend (React + Vite)
+Open a new terminal window:
 ```bash
 cd Cithara-ai-music-web/Frontend
 npm install
@@ -53,60 +56,42 @@ npm run dev
 
 ---
 
-## 3. Path B: Docker Setup
+## 🐳 Path B: Docker Setup
 
-The fastest way to get a full environment up and running.
+The entire stack can be launched with a single command. **Hot-reloading is fully supported** via volume mounts for both frontend and backend.
 
 ```bash
-# From the root directory (Cithara-ai-music-web)
+# From the project root
 docker-compose up --build
 ```
 
-**Hot-Reloading:**
-- Backend code in `Cithara/` and Frontend code in `Frontend/` are volumed into the containers. Changes will trigger automatic reloads.
+---
+
+## 🏗️ Generation Strategies (Strategy Pattern)
+
+Cithara uses a **Strategy Design Pattern** to handle music generation. You can swap behaviors without changing your core domain logic.
+
+| Strategy | Selection Flag | Description |
+| :--- | :--- | :--- |
+| **Mock** | `GENERATOR_STRATEGY=mock` | **Offline Mode.** Generates instant results with dummy audio links. No API key needed. |
+| **Suno** | `GENERATOR_STRATEGY=suno` | **Live Mode.** Connects to Suno API. Requires a valid `SUNO_API_KEY` in `.env`. |
+
+> [!IMPORTANT]
+> **API Key Security:** Never commit your `.env` file. It is already included in `.gitignore` and `.dockerignore` to prevent accidental exposure of your Suno credentials.
 
 ---
 
-## 4. Key Access Points
+## 🧪 Verification & Testing
 
-| Service | Solo URL | Docker URL |
-|---------|----------|------------|
-| Frontend UI | `http://localhost:5173` | `http://localhost:5173` |
-| Backend API | `http://localhost:8000/api` | `http://localhost:8000/api` |
-| Django Admin | `http://localhost:8000/admin` | `http://localhost:8000/admin` |
-
----
-
-## 5. Domain Model & Business Logic
-
-### Core Entities
-- **User**: Authenticated user (1:1 with Library)
-- **Library**: Song collection (up to 1M songs)
-- **Song**: Generated audio item (belongs to Library)
-- **ShareLink**: Public access token for a Song (1:1 with Song)
-
-### Strategy Pattern (Generation Logic)
-We use a strategy pattern to switch between generation modes:
-- **Mock**: No API keys required, instant generation with dummy links.
-- **Suno**: Connects to Suno AI API (requires `SUNO_API_KEY` in `.env`).
-
-To switch, update `GENERATOR_STRATEGY` in your `.env` or export the variable before running:
+### 1. Domain Integrity Test
+Verify the end-to-end CRUD lifecycle and Strategy pattern behavior:
 ```bash
-export GENERATOR_STRATEGY=suno
-```
-
----
-
-## 6. Testing
-
-### Backend CRUD Test
-A dedicated script tests the full domain lifecycle (Create, Read, Update, Delete with cascade).
-```bash
-# From root directory
+# From the root directory (Native Path)
 python3 test_crud.py
+python3 Cithara/test_strategy.py
 ```
 
-### Django Unit Tests
+### 2. Django Unit Tests
 ```bash
 cd Cithara
 python3 manage.py test
@@ -114,29 +99,35 @@ python3 manage.py test
 
 ---
 
-## 7. Troubleshooting
-
-- **Port in Use**: If `8000` or `5173` are busy, use `python3 manage.py runserver 8001` or check `vite.config.js`.
-- **Database Locked**: If using SQLite locally and it locks, run `rm Cithara/db.sqlite3 && python3 manage.py migrate`.
-- **Node Modules**: If the frontend fails to start in Docker, try `rm -rf Frontend/node_modules` and rebuild.
-
----
-
-## 8. Directory Structure
+## 📂 Project Architecture
 
 ```text
 Cithara-ai-music-web/
 ├── Cithara/             # Django Backend
-│   ├── domain/          # Core Domain Logic & Models
-│   ├── Cithara/         # Settings & Routing
-│   └── manage.py
-├── Frontend/            # Vite + React Frontend
-│   ├── src/             # Components & Logic
-│   └── package.json
-├── docker-compose.yml   # Docker Orchestration
-├── .env.example         # Environment template
-└── test_crud.py         # Integrity script
+│   ├── domain/          # Core Domain Architecture
+│   │   ├── models/      # Data entities & constraints
+│   │   ├── strategies/  # Song Generation implementation
+│   │   └── views.py     # API ViewSets
+│   └── Cithara/         # Project Settings & Routing
+├── Frontend/            # React + Vite Frontend
+│   ├── src/             # UI Components & States
+│   └── public/          # Static assets
+└── docker-compose.yml   # Container Orchestration
 ```
 
+---
 
+## 💡 Troubleshooting
 
+> [!TIP]
+> **Port Conflicts:** Ensure ports `8000` (Backend) and `5173` (Frontend) are free.
+> 
+> **Database Locks:** If SQLite reports a lock, run:
+> `rm Cithara/db.sqlite3 && python3 manage.py migrate`
+> 
+> **Docker Node Issues:** If the frontend fails to start in Docker, clear the local modules:
+> `rm -rf Frontend/node_modules` and then run `docker-compose build`.
+
+---
+
+© 2024 Cithara Development Team

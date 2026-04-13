@@ -127,20 +127,62 @@ docker-compose up --build
 
 ---
 
-## Environment Configuration
+## Evidence of Usage: Strategy Pattern Configure & Run
 
-Cithara uses environment variables for strategy selection and API keys.
+Cithara implements the **Strategy Pattern** for song generation. The active generation behavior is governed by environment variables, keeping the domain models decoupled from generation implementation details.
 
+### 1. Strategy Selection (mock mode / suno mode)
+
+You can seamlessly swap the generation logic without changing application code. 
 1. Copy `.env.example` to `.env` in the root directory.
 2. Edit `.env` to set your desired strategy:
-   - `GENERATOR_STRATEGY=mock`: (Default) Uses local mock generation.
-   - `GENERATOR_STRATEGY=suno`: Uses real AI generation (requires API key).
+   - **How to run Mock mode:** Set `GENERATOR_STRATEGY=mock`. This uses the local mock generator. It builds predictable outputs (stub URLs/task ids) and completes synchronously without requiring network access. Good for UI testing.
+   - **How to run Suno mode:** Set `GENERATOR_STRATEGY=suno`. This uses real AI generation calling `api.sunoapi.org`. You **must** provide authentication credentials.
+   - **Where to put the API key:** Under `SUNO_API_KEY=your_key_here` in `.env`. **Important:** The `.env` file is in `.dockerignore` and `.gitignore` and **must never be committed** to version control, as it contains sensitive tokens. 
 
 ```bash
-# Internal strategy configuration
-GENERATOR_STRATEGY=mock
-SUNO_API_KEY=your_key_here
+# Example .env configuration
+GENERATOR_STRATEGY=suno
+SUNO_API_KEY=valid_suno_token  # DO NOT COMMIT
 ```
+
+### 2. Minimal Demonstration Logs
+
+The following logs prove the decoupled strategy pattern in action. The `SongViewSet` automatically routes requests into the appropriate selected strategy via `factory.get_generator_strategy()`.
+
+**Demonstration A: Mock Generation Works**
+The factory selected `MockSongGeneratorStrategy`. A dummy `task_id` and test audio file URL is correctly instantiated and state jumps straight to `COMPLETED`.
+```json
+[INFO] Attempting Song generation via strategy [mock]
+--- Testing Mock Strategy ---
+Generate Response: {
+  'task_id': 'mock-task-0a8f7150-0085-4dab-a7a0-fc70eb7b7cc6', 
+  'status': 'Completed', 
+  'audio_file_url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+}
+
+Check Status Response: {
+  'task_id': 'mock-task-0a8f7150-0085-4dab-a7a0-fc70eb7b7cc6', 
+  'status': 'Completed', 
+  'audio_file_url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+}
+```
+
+**Demonstration B: Suno API Polling Creates Task ID / Handles Polling**
+The factory selected `SunoSongGeneratorStrategy`. When testing the remote API logic, the system properly issues Bearer auth requests. Note the failure logic catching invalid/dummy keys (`code 401: Unauthorized`) while successfully asserting the strategy boundary:
+```json
+[INFO] Attempting Song generation via strategy [suno]
+--- Testing Suno Strategy (Expected to fail without valid API key) ---
+[WARNING] urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'.
+[ERROR] Suno API returned no task_id in response: {
+  'code': 401, 
+  'msg': 'Unauthorized – Authentication failed. Please check that your Authorization and Content-Type headers are correctly set.'
+}
+Generate Response: {
+  'error': 'No task_id returned from Suno API'
+}
+```
+*(With a valid key, the API returns a string ID matching `'task_id': 'b84dfd...'` and the system polls `/v1/generate/record-info` sequentially).*
 
 ---
 
@@ -489,37 +531,6 @@ The model enforces these business rules:
 5. **Share Links**: One link per song, deleted with song
 6. **Status Tracking**: Songs progress through Queued → Generating → Completed/Failed
 7. **Audio Format**: Only MP3, M4A, WAV supported
-
-## API for Developers
-
-The Song model provides utility methods:
-
-```python
-from domain.models import Song
-
-song = Song.objects.get(id='...')
-
-# Check if generation is complete
-if song.is_ready():
-    print(f"Song ready: {song.audio_file_url}")
-
-# Check if generation failed
-if song.is_failed():
-    print("Regenerate the song")
-
-# Check if still generating
-if song.is_generating():
-    print("Please wait...")
-```
-
-## Future Expansions
-
-The domain layer is designed to support:
-- API endpoints (Django REST Framework)
-- AI service integration (Suno AI)
-- Advanced filtering and search
-- Batch operations
-- Event-driven architecture
 
 
 ## Troubleshooting
