@@ -80,16 +80,20 @@ class SongViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Filter songs by library if library_id is provided in query parameters.
-        Otherwise, return all songs (can be further restricted for security).
+        Allow detail lookups (pk in kwargs).
         """
         queryset = Song.objects.all()
+        
+        # If accessing a specific song (detail view), allow it
+        if self.detail or 'pk' in self.kwargs:
+            return queryset
+
         library_id = self.request.query_params.get('library', None)
         if library_id:
-            queryset = queryset.filter(library_id=library_id)
+            return queryset.filter(library_id=library_id)
         
-        # If no library filter is provided, we return an empty queryset 
-        # to prevent accidental leakage of all songs.
-        elif not self.request.user.is_staff:
+        # Prevent accidental leakage of all songs on list view for non-staff
+        if not self.request.user.is_staff:
             return Song.objects.none()
             
         return queryset
