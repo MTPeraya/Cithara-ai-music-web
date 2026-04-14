@@ -1,36 +1,54 @@
 import uuid
+from django.utils import timezone
 from domain.models import Song
 from domain.models.choices.generation_status import GenerationStatus
 from .base import SongGeneratorStrategy
 
 class MockSongGeneratorStrategy(SongGeneratorStrategy):
     """
-    Mock generator strategy that completes synchronously without 
-    making any external API calls. Used for development and testing.
+    Mock generator strategy that simulates a timed generation process
+    to allow testing of the frontend loading states.
     """
 
     def generate(self, song: Song) -> dict:
         """
-        Immediately process the song and generate a mock result.
+        Seed the song logic and set initial status.
         """
-        # Assign a mock task ID
-        # Update song object
         song.provider_task_id = f"mock-task-{uuid.uuid4()}"
-        song.status = GenerationStatus.COMPLETED
-        song.audio_file_url = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+        song.status = GenerationStatus.QUEUED
         song.save()
         
         return {
             "task_id": song.provider_task_id,
             "status": song.status,
-            "audio_file_url": song.audio_file_url
+            "audio_file_url": ""
         }
 
     def check_status(self, song: Song) -> dict:
         """
-        For mock strategy, the generation finishes immediately in `generate`,
-        so check_status just returns the current state.
+        Simulate a transition from QUEUED -> GENERATING -> COMPLETED
+        based on how long ago the song was created.
         """
+        now = timezone.now()
+        elapsed = (now - song.created_at).total_seconds()
+
+        # 0-5 seconds: Stay in Queued
+        if elapsed < 5:
+            new_status = GenerationStatus.QUEUED
+        # 5-15 seconds: Move to Generating
+        elif elapsed < 15:
+            new_status = GenerationStatus.GENERATING
+        # 15+ seconds: Complete
+        else:
+            new_status = GenerationStatus.COMPLETED
+            if not song.audio_file_url:
+                song.audio_file_url = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+
+        # Update DB if status changed
+        if song.status != new_status:
+            song.status = new_status
+            song.save()
+
         return {
             "task_id": song.provider_task_id,
             "status": song.status,

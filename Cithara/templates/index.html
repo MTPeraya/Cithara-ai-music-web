@@ -11,8 +11,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
  </head>
- <body class="h-full bg-slate-50 overflow-auto">
-  <div id="app" class="w-full h-full"></div>
-  <script src="{% static 'js/app.js' %}"></script>
+ <body class="h-full bg-slate-900 flex items-center justify-center text-white font-sans">
+  <div class="text-center p-8 bg-slate-800 rounded-3xl shadow-2xl border border-slate-700 max-w-lg">
+    <div class="w-16 h-16 bg-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13l-6-6-6 6M12 7v12"/>
+        </svg>
+    </div>
+    <h1 class="text-2xl font-bold mb-4">You're on the Legacy Port (8000)</h1>
+    <p class="text-slate-400 mb-8 leading-relaxed">
+        The modern React frontend is running on <span class="text-indigo-400 font-mono">port 5173</span>. 
+        Please use the link below to see the latest changes (including validation and Suno integration).
+    </p>
+    <a href="http://localhost:5173" class="inline-block bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 px-8 rounded-xl transition-all hover:scale-105">
+        Open React App (Port 5173)
+    </a>
+  </div>
+  <script>
+    // Auto-redirect after 2 seconds
+    setTimeout(() => { window.location.href = "http://localhost:5173"; }, 2000);
+  </script>
  </body>
 </html>

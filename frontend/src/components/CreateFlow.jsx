@@ -14,10 +14,10 @@ const REQUIRED_FIELDS = {
 
 // Map real Suno/backend statuses to user-friendly labels + progress %
 const STATUS_MAP = {
-  queued:      { message: 'Queued — waiting for Suno AI...', progress: 10 },
-  generating:  { message: 'Suno AI is composing your song...', progress: 55 },
-  completed:   { message: 'Your song is ready!', progress: 100 },
-  failed:      { message: 'Generation failed.', progress: 0 },
+  queued: { message: 'Queued — waiting for Suno AI...', progress: 10 },
+  generating: { message: 'Suno AI is composing your song...', progress: 55 },
+  completed: { message: 'Your song is ready!', progress: 100 },
+  failed: { message: 'Generation failed.', progress: 0 },
 };
 
 function FieldError({ show, message }) {
@@ -25,8 +25,8 @@ function FieldError({ show, message }) {
   return (
     <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
       <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-        <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+        <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z" />
       </svg>
       {message}
     </p>
@@ -36,103 +36,102 @@ function FieldError({ show, message }) {
 export default function CreateFlow({ currentPage, setCurrentPage, currentLibraryId, onGenerationComplete }) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({ title: '', occasion: '', genre: '', voice: '', mood: '', story: '', context: '' });
-  const [touched, setTouched] = useState({});
+  // Tracks which steps the user has attempted to submit (so we show errors for those steps)
+  const [attemptedSteps, setAttemptedSteps] = useState({});
   const [generationStatus, setGenerationStatus] = useState('queued');
   const [generationMessage, setGenerationMessage] = useState('');
 
   useEffect(() => {
     if (currentPage === 'review') setStep(4);
-    if (currentPage === 'generating') {
-      setGenerationStatus('queued');
-      setGenerationMessage(STATUS_MAP.queued.message);
-      startGeneration();
-    }
   }, [currentPage]);
+
+  // Dedicated effect for the generation lifecycle
+  useEffect(() => {
+    if (currentPage !== 'generating') return;
+
+    setGenerationStatus('queued');
+    setGenerationMessage(STATUS_MAP.queued.message);
+
+    if (!currentLibraryId) {
+      alert('No library found. Please sign in again.');
+      setCurrentPage('create');
+      return;
+    }
+
+    let interval; // keep reference so we can clear it
+
+    const run = async () => {
+      try {
+        const song = await api.createSong(currentLibraryId, formData);
+
+        const doPoll = async () => {
+          try {
+            const data = await api.checkStatus(song.id);
+            const rawStatus = (data.song?.status || 'queued').toLowerCase();
+            const mapped = STATUS_MAP[rawStatus] || { message: 'Processing...', progress: 30 };
+
+            setGenerationStatus(rawStatus);
+            setGenerationMessage(mapped.message);
+
+            if (rawStatus === 'completed') {
+              clearInterval(interval);
+              setTimeout(() => onGenerationComplete(), 800);
+            } else if (rawStatus === 'failed') {
+              clearInterval(interval);
+              setTimeout(() => {
+                alert('Song generation failed. Please try again.');
+                setCurrentPage('create');
+              }, 500);
+            }
+          } catch (e) {
+            console.error('Polling error:', e);
+          }
+        };
+
+        // Poll immediately for mock/instant strategies
+        doPoll();
+        interval = setInterval(doPoll, 5000);
+      } catch (e) {
+        alert(e.message);
+        setCurrentPage('create');
+      }
+    };
+
+    run();
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [currentPage, currentLibraryId, formData, onGenerationComplete]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear the error as soon as the user fills the field
-    setTouched(prev => ({ ...prev, [name]: true }));
   };
-
-  // Mark all fields in a step as touched to show errors
-  const touchStep = (s) => {
-    const fields = REQUIRED_FIELDS[s] || [];
-    const updates = {};
-    fields.forEach(f => { updates[f] = true; });
-    setTouched(prev => ({ ...prev, ...updates }));
-  };
-
-  const isFieldInvalid = (name) => touched[name] && !formData[name];
 
   const validateStep = (s) => {
     const fields = REQUIRED_FIELDS[s] || [];
     return fields.every(f => !!formData[f]);
   };
 
+  // A field shows as invalid when: the step has been attempted AND the field is empty
+  const isFieldInvalid = (stepNum, name) => !!attemptedSteps[stepNum] && !formData[name];
+
   const nextStep = () => {
-    touchStep(step);
-    if (!validateStep(step)) return;
+    // Mark this step as attempted so errors become visible
+    setAttemptedSteps(prev => ({ ...prev, [step]: true }));
+    if (!validateStep(step)) return; // Block advancement
     if (step < 3) setStep(step + 1);
     else setCurrentPage('review');
   };
 
   const handleGenerate = () => {
-    // Re-validate steps 1 and 2 before generating
-    touchStep(1);
-    touchStep(2);
-    if (!validateStep(1) || !validateStep(2)) {
-      setStep(1);
-      setCurrentPage('create');
-      return;
-    }
+    setAttemptedSteps({ 1: true, 2: true });
+    if (!validateStep(1)) { setStep(1); return; }
+    if (!validateStep(2)) { setStep(2); return; }
+
+    // Only now navigate to generating
     setCurrentPage('generating');
-  };
-
-  const startGeneration = async () => {
-    if (!currentLibraryId) {
-      alert('No library found. Please sign in again.');
-      return;
-    }
-    try {
-      const song = await api.createSong(currentLibraryId, formData);
-      pollProgress(song.id);
-    } catch (e) {
-      alert(e.message);
-      setCurrentPage('create');
-    }
-  };
-
-  const pollProgress = (songId) => {
-    const doPoll = async () => {
-      try {
-        const data = await api.checkStatus(songId);
-        const rawStatus = (data.song?.status || 'queued').toLowerCase();
-
-        const mapped = STATUS_MAP[rawStatus] || { message: 'Processing...', progress: 30 };
-        setGenerationStatus(rawStatus);
-        setGenerationMessage(mapped.message);
-
-        if (rawStatus === 'completed') {
-          clearInterval(interval);
-          setTimeout(() => { onGenerationComplete(); }, 800);
-        } else if (rawStatus === 'failed') {
-          clearInterval(interval);
-          setTimeout(() => {
-            alert('Song generation failed. Please try again.');
-            setCurrentPage('create');
-          }, 500);
-        }
-      } catch (e) {
-        console.error('Polling error:', e);
-      }
-    };
-
-    // Poll immediately (for mock strategy which completes synchronously)
-    // then every 5 seconds for Suno
-    doPoll();
-    const interval = setInterval(doPoll, 5000);
   };
 
   const renderStepIndicator = () => {
@@ -170,7 +169,7 @@ export default function CreateFlow({ currentPage, setCurrentPage, currentLibrary
         <div className="text-center max-w-md mx-auto px-6 animate-fade-in">
           {/* Animated waveform */}
           <div className="flex items-end justify-center gap-1.5 h-16 mb-10">
-            {[1,2,3,4,5].map(n => (
+            {[1, 2, 3, 4, 5].map(n => (
               <div key={n} className={`w-3 rounded-full bg-gradient-to-t from-indigo-500 to-purple-500 shadow-sm shadow-indigo-100 ${isWaiting ? 'wave-bar' : ''}`} style={{ height: '40px' }}></div>
             ))}
           </div>
@@ -186,8 +185,8 @@ export default function CreateFlow({ currentPage, setCurrentPage, currentLibrary
                                                  'bg-indigo-50 text-indigo-600 border-indigo-100'}">
             {generationStatus === 'generating' && (
               <svg className="animate-spin" width="14" height="14" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
               </svg>
             )}
             {generationStatus.charAt(0).toUpperCase() + generationStatus.slice(1)}
@@ -218,11 +217,11 @@ export default function CreateFlow({ currentPage, setCurrentPage, currentLibrary
   if (currentPage === 'review') {
     const details = [
       { label: 'Song Title', value: formData.title || '—' },
-      { label: 'Occasion',   value: formData.occasion || '—' },
-      { label: 'Genre',      value: formData.genre || '—' },
-      { label: 'Voice',      value: formData.voice || '—' },
-      { label: 'Mood',       value: formData.mood || '—' },
-      { label: 'Story',      value: formData.story || '(none)' },
+      { label: 'Occasion', value: formData.occasion || '—' },
+      { label: 'Genre', value: formData.genre || '—' },
+      { label: 'Voice', value: formData.voice || '—' },
+      { label: 'Mood', value: formData.mood || '—' },
+      { label: 'Story', value: formData.story || '(none)' },
       { label: 'Additional Context', value: formData.context || '(none)' },
     ];
 
@@ -259,7 +258,7 @@ export default function CreateFlow({ currentPage, setCurrentPage, currentLibrary
   // ────────────────────────────────────────────────
   const inputBase = 'w-full px-4 py-3 rounded-xl text-base bg-white text-slate-800 focus:outline-none focus:ring-2 transition-all';
   const inputNormal = `${inputBase} border border-slate-200 focus:ring-indigo-500 focus:border-indigo-500`;
-  const inputError  = `${inputBase} border-2 border-red-400 focus:ring-red-300 focus:border-red-400 bg-red-50/30`;
+  const inputError = `${inputBase} border-2 border-red-400 focus:ring-red-300 focus:border-red-400 bg-red-50/30`;
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
@@ -281,9 +280,9 @@ export default function CreateFlow({ currentPage, setCurrentPage, currentLibrary
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="e.g., Summer Memories"
-                  className={isFieldInvalid('title') ? inputError : inputNormal}
+                  className={isFieldInvalid(1, 'title') ? inputError : inputNormal}
                 />
-                <FieldError show={isFieldInvalid('title')} message="Song title is required." />
+                <FieldError show={isFieldInvalid(1, 'title')} message="Song title is required." />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2 text-slate-800">
@@ -293,12 +292,12 @@ export default function CreateFlow({ currentPage, setCurrentPage, currentLibrary
                   name="occasion"
                   value={formData.occasion}
                   onChange={handleChange}
-                  className={`appearance-none cursor-pointer ${isFieldInvalid('occasion') ? inputError : inputNormal}`}
+                  className={`appearance-none cursor-pointer ${isFieldInvalid(1, 'occasion') ? inputError : inputNormal}`}
                 >
                   <option value="">Select an occasion</option>
                   {occasions.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
-                <FieldError show={isFieldInvalid('occasion')} message="Please select an occasion." />
+                <FieldError show={isFieldInvalid(1, 'occasion')} message="Please select an occasion." />
               </div>
             </div>
           </>
@@ -317,12 +316,12 @@ export default function CreateFlow({ currentPage, setCurrentPage, currentLibrary
                   name="genre"
                   value={formData.genre}
                   onChange={handleChange}
-                  className={`appearance-none cursor-pointer ${isFieldInvalid('genre') ? inputError : inputNormal}`}
+                  className={`appearance-none cursor-pointer ${isFieldInvalid(2, 'genre') ? inputError : inputNormal}`}
                 >
                   <option value="">Select a genre</option>
                   {genres.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
-                <FieldError show={isFieldInvalid('genre')} message="Please select a genre." />
+                <FieldError show={isFieldInvalid(2, 'genre')} message="Please select a genre." />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2 text-slate-800">
@@ -332,12 +331,12 @@ export default function CreateFlow({ currentPage, setCurrentPage, currentLibrary
                   name="voice"
                   value={formData.voice}
                   onChange={handleChange}
-                  className={`appearance-none cursor-pointer ${isFieldInvalid('voice') ? inputError : inputNormal}`}
+                  className={`appearance-none cursor-pointer ${isFieldInvalid(2, 'voice') ? inputError : inputNormal}`}
                 >
                   <option value="">Select voice type</option>
                   {voices.map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
-                <FieldError show={isFieldInvalid('voice')} message="Please select a singer voice." />
+                <FieldError show={isFieldInvalid(2, 'voice')} message="Please select a singer voice." />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2 text-slate-800">
@@ -347,12 +346,12 @@ export default function CreateFlow({ currentPage, setCurrentPage, currentLibrary
                   name="mood"
                   value={formData.mood}
                   onChange={handleChange}
-                  className={`appearance-none cursor-pointer ${isFieldInvalid('mood') ? inputError : inputNormal}`}
+                  className={`appearance-none cursor-pointer ${isFieldInvalid(2, 'mood') ? inputError : inputNormal}`}
                 >
                   <option value="">Select a mood</option>
                   {moods.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
-                <FieldError show={isFieldInvalid('mood')} message="Please select a mood." />
+                <FieldError show={isFieldInvalid(2, 'mood')} message="Please select a mood." />
               </div>
             </div>
           </>
