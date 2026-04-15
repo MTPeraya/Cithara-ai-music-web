@@ -148,41 +148,74 @@ SUNO_API_KEY=valid_suno_token  # DO NOT COMMIT
 
 ### 2. Minimal Demonstration Logs
 
-The following logs prove the decoupled strategy pattern in action. The `SongViewSet` automatically routes requests into the appropriate selected strategy via `factory.get_generator_strategy()`.
+The following logs prove the decoupled strategy pattern in action. The system automatically routes requests to the appropriate selected strategy via `factory.get_generator_strategy()`, which reads the `GENERATOR_STRATEGY` environment variable.
 
-**Demonstration A: Mock Generation Works**
-The factory selected `MockSongGeneratorStrategy`. A dummy `task_id` and test audio file URL is correctly instantiated and state jumps straight to `COMPLETED`.
-```json
-[INFO] Attempting Song generation via strategy [mock]
+**Demonstration A: Mock Generation with Time-Based Polling**
+The factory selected `MockSongGeneratorStrategy`. Initial `generate()` call creates a task_id and returns `QUEUED`. The `check_status()` method simulates a realistic generation timeline:
+- **0-5 seconds**: `QUEUED` state
+- **5-15 seconds**: `GENERATING` state  
+- **15+ seconds**: `COMPLETED` with audio URL populated
+
+```
 --- Testing Mock Strategy ---
 Generate Response: {
-  'task_id': 'mock-task-0a8f7150-0085-4dab-a7a0-fc70eb7b7cc6', 
-  'status': 'Completed', 
-  'audio_file_url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+  'task_id': 'mock-task-a6186f35-362a-437e-9b07-bfbef32fb62d', 
+  'status': GenerationStatus.QUEUED, 
+  'audio_file_url': ''
 }
 
+# After ~2 seconds (still queued)
 Check Status Response: {
-  'task_id': 'mock-task-0a8f7150-0085-4dab-a7a0-fc70eb7b7cc6', 
-  'status': 'Completed', 
+  'task_id': 'mock-task-a6186f35-362a-437e-9b07-bfbef32fb62d', 
+  'status': GenerationStatus.QUEUED, 
+  'audio_file_url': ''
+}
+
+# After ~10 seconds (now generating)
+Check Status Response: {
+  'task_id': 'mock-task-a6186f35-362a-437e-9b07-bfbef32fb62d', 
+  'status': GenerationStatus.GENERATING, 
+  'audio_file_url': ''
+}
+
+# After ~20 seconds (completed with audio)
+Check Status Response: {
+  'task_id': 'mock-task-a6186f35-362a-437e-9b07-bfbef32fb62d', 
+  'status': GenerationStatus.COMPLETED, 
   'audio_file_url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
 }
 ```
 
-**Demonstration B: Suno API Polling Creates Task ID / Handles Polling**
-The factory selected `SunoSongGeneratorStrategy`. When testing the remote API logic, the system properly issues Bearer auth requests. Note the failure logic catching invalid/dummy keys (`code 401: Unauthorized`) while successfully asserting the strategy boundary:
-```json
-[INFO] Attempting Song generation via strategy [suno]
+This polling-based approach allows testing of frontend loading states and UI transitions without requiring the actual Suno API.
+
+---
+
+**Demonstration B: Suno API Integration with Task ID Polling**
+The factory selected `SunoSongGeneratorStrategy`. When `SUNO_API_KEY` is configured, the system:
+1. Calls the Suno API's `/v1/generate` endpoint with style parameters
+2. Receives a `taskId` for the generation job
+3. Polls `/v1/generate/record-info` to check progress
+
+Without a valid API key, the system gracefully handles the error:
+```
 --- Testing Suno Strategy (Expected to fail without valid API key) ---
-[WARNING] urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'.
-[ERROR] Suno API returned no task_id in response: {
+Generate Response: {
+  'task_id': 'mock-task-bda8a2ff-b319-4df8-bae0-28fcbef4f2dc', 
+  'status': GenerationStatus.QUEUED, 
+  'audio_file_url': ''
+}
+
+[ERROR] Suno API returned error code 401 in response: {
   'code': 401, 
   'msg': 'Unauthorized – Authentication failed. Please check that your Authorization and Content-Type headers are correctly set.'
 }
 Generate Response: {
-  'error': 'No task_id returned from Suno API'
+  'error': 'Unauthorized – Authentication failed. Please check that your Authorization and Content-Type headers are correctly set.', 
+  'status': GenerationStatus.FAILED
 }
 ```
-*(With a valid key, the API returns a string ID matching `'task_id': 'b84dfd...'` and the system polls `/v1/generate/record-info` sequentially).*
+
+**With a valid SUNO_API_KEY**, the API returns a real `taskId` and the system successfully polls for status updates using the Suno API endpoints.
 
 ---
 
