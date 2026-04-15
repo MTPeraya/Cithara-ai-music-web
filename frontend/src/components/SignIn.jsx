@@ -72,7 +72,7 @@ export default function SignIn({ onSuccess }) {
         </div>
 
         <p className="mt-12 text-sm text-slate-400">
-          Free to use • High-fidelity AI music generation <br />
+          Free to use • No credit card required <br />
           Built for creators, by Cithara.
         </p>
       </div>

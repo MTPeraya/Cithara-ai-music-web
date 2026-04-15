@@ -148,3 +148,8 @@ CSRF_TRUSTED_ORIGINS = [
 # Use 'mock' for local development or 'suno' for the actual API
 GENERATOR_STRATEGY = os.getenv('GENERATOR_STRATEGY', 'mock')
 SUNO_API_KEY = os.getenv('SUNO_API_KEY', '')
+# Suno API requires a callBackUrl in every generate request.
+# In development this won't be reachable by Suno, but the field is mandatory.
+# The app uses polling (check_status) rather than webhooks, so the callback
+# is a no-op endpoint that simply logs and acknowledges any inbound request.
+SUNO_CALLBACK_URL = os.getenv('SUNO_CALLBACK_URL', 'http://localhost:8000/api/suno/callback/')

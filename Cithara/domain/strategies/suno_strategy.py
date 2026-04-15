@@ -32,6 +32,9 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
         # Prepare style tags from genre, mood and occasion
         style_tags = f"{song.get_genre_display()}, {song.get_mood_display()}, {song.get_occasion_display()}"
         
+        # Get callback URL from settings (required by Suno API)
+        callback_url = getattr(settings, "SUNO_CALLBACK_URL", "http://localhost:8000/api/suno/callback/")
+        
         payload = {
             "customMode": True,
             "instrumental": False,
@@ -39,8 +42,7 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
             "title": song.title,
             "prompt": song.prompt or f"A high-quality song with musical style {style_tags}",
             "model": "V3_5",
-            # callBackUrl is omitted — we use frontend polling instead.
-            # Suno cannot reach localhost, so a webhook would not work in development.
+            "callBackUrl": callback_url,  # Required by Suno API. We use polling instead of webhooks.
         }
         
         logger.info(f"Triggering Suno AI generation for '{song.title}' with style: {style_tags}")
