@@ -590,3 +590,12 @@ python3 manage.py makemigrations domain
 # Create a new superuser
 python3 manage.py createsuperuser
 ```
+
+## Media Attribution
+
+The system uses a mock audio file for the `MockSongGeneratorStrategy`. 
+
+- **Sunshine by Moavii**: Free to use in non-commercial content as long as you provide attribution.
+- **Music track**: Sunshine by Moavii
+- **Source**: [https://freetouse.com/music](https://freetouse.com/music)
+
