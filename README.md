@@ -98,7 +98,7 @@ The backend will be available at `http://127.0.0.1:8000/`.
 #### 3. Frontend Setup (React + Vite)
 Open a new terminal window:
 ```bash
-cd Cithara-ai-music-web/Frontend
+cd Cithara-ai-music-web/frontend
 
 # Install dependencies
 npm install
@@ -566,30 +566,10 @@ The model enforces these business rules:
 7. **Audio Format**: Only MP3, M4A, WAV supported
 
 
-## Troubleshooting
+## 💡 Troubleshooting
 
-### Database Locked Error
-```bash
-# Delete the database and restart
-rm Cithara/db.sqlite3
-python3 manage.py migrate
-```
+Having issues with Docker, migrations, or the Suno API? Please refer to our centralized [Troubleshooting Guide](./TROUBLESHOOTING.md).
 
-### Migration Issues
-```bash
-# Show migration status
-python3 manage.py showmigrations
-
-# Recreate migrations if needed
-rm Cithara/domain/migrations/0*.py
-python3 manage.py makemigrations domain
-```
-
-### Superuser Issues  
-```bash
-# Create a new superuser
-python3 manage.py createsuperuser
-```
 
 ## Media Attribution
 

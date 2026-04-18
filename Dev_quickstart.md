@@ -49,7 +49,7 @@ python3 manage.py runserver
 ### 4. Frontend (React + Vite)
 Open a new terminal window:
 ```bash
-cd Cithara-ai-music-web/Frontend
+cd Cithara-ai-music-web/frontend
 npm install
 npm run dev
 ```
@@ -109,7 +109,7 @@ Cithara-ai-music-web/
 │   │   ├── strategies/  # Song Generation implementation
 │   │   └── views.py     # API ViewSets
 │   └── Cithara/         # Project Settings & Routing
-├── Frontend/            # React + Vite Frontend
+├── frontend/            # React + Vite Frontend
 │   ├── src/             # UI Components & States
 │   └── public/          # Static assets
 └── docker-compose.yml   # Container Orchestration
@@ -119,14 +119,8 @@ Cithara-ai-music-web/
 
 ## 💡 Troubleshooting
 
-> [!TIP]
-> **Port Conflicts:** Ensure ports `8000` (Backend) and `5173` (Frontend) are free.
-> 
-> **Database Locks:** If SQLite reports a lock, run:
-> `rm Cithara/db.sqlite3 && python3 manage.py migrate`
-> 
-> **Docker Node Issues:** If the frontend fails to start in Docker, clear the local modules:
-> `rm -rf Frontend/node_modules` and then run `docker-compose build`.
+Having issues with Docker, migrations, or the Suno API? Please refer to our centralized [Troubleshooting Guide](./TROUBLESHOOTING.md).
+
 
 ---
 
