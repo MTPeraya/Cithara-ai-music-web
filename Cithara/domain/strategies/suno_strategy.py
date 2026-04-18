@@ -59,8 +59,11 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
                 json=payload,
                 timeout=15
             )
+            if response.status_code != 200:
+                logger.error(f"Suno API POST failed with status {response.status_code}. Response: {response.text}")
             response.raise_for_status()
             data = response.json()
+            logger.debug(f"Suno API Generate Response: {json.dumps(data, indent=2)}")
             
             # Check for API wrapper errors (HTTP 200 but JSON contains error code)
             api_code = data.get("code")
@@ -70,28 +73,24 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
                 song.save()
                 return {"error": data.get("msg", "Unknown API Error"), "status": song.status}
             
-            # Extract taskId (SunoAPI usually returns taskId or similar in response)
-            # Assuming {'taskId': '...'} or {'data': {'taskId': '...'}}
-            
-            # The API might directly return taskId or a list of tasks. 
-            # We'll safely check standard places.
-            task_id = data.get("taskId")
+            # Extraction of task identification
+            # The API might return taskId, id, or be nested in data.taskId
+            task_id = data.get("taskId") or data.get("id")
             if not task_id and "data" in data and isinstance(data["data"], dict):
-                task_id = data["data"].get("taskId")
+                task_id = data["data"].get("taskId") or data["data"].get("id")
+            elif not task_id and "data" in data and isinstance(data["data"], str):
+                task_id = data["data"] # Sometimes data IS the taskId string
             
-            if not task_id:
-                # Fallback maybe?
-                task_id = data.get("id")
-
             if task_id:
+                logger.info(f"Successfully retrieved taskId: {task_id}")
                 song.provider_task_id = task_id
                 song.save()
                 return {"task_id": task_id, "status": song.status}
             else:
-                logger.error(f"Suno API returned no task_id in response: {data}")
+                logger.error(f"Suno API returned no recognizable task_id in response: {json.dumps(data)}")
                 song.status = GenerationStatus.FAILED
                 song.save()
-                return {"error": "No task_id returned from Suno API"}
+                return {"error": "No task_id returned from Suno API", "details": data}
 
         except requests.exceptions.HTTPError as e:
             if e.response.status_code in [401, 403]:

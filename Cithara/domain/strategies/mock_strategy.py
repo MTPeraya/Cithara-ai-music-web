@@ -42,7 +42,7 @@ class MockSongGeneratorStrategy(SongGeneratorStrategy):
         else:
             new_status = GenerationStatus.COMPLETED
             if not song.audio_file_url:
-                song.audio_file_url = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+                song.audio_file_url = "http://localhost:8000/static/audio/mock_song.mp3"
 
         # Update DB if status changed
         if song.status != new_status:

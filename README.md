@@ -136,9 +136,9 @@ Cithara implements the **Strategy Pattern** for song generation. The active gene
 You can seamlessly swap the generation logic without changing application code. 
 1. Copy `.env.example` to `.env` in the root directory.
 2. Edit `.env` to set your desired strategy:
-   - **How to run Mock mode:** Set `GENERATOR_STRATEGY=mock`. This uses the local mock generator. It builds predictable outputs (stub URLs/task ids) and completes synchronously without requiring network access. Good for UI testing.
+   - **How to run Mock mode:** Set `GENERATOR_STRATEGY=mock`. This uses the local mock generator. It builds predictable outputs (task ids) and completes after a simulated delay. Crucially, it uses a **local placeholder audio file** (`/static/audio/mock_song.mp3`), ensuring the system is fully usable without network access as required by Exercise 4.
    - **How to run Suno mode:** Set `GENERATOR_STRATEGY=suno`. This uses real AI generation calling `api.sunoapi.org`. You **must** provide authentication credentials.
-   - **Where to put the API key:** Under `SUNO_API_KEY=your_key_here` in `.env`. **Important:** The `.env` file is in `.dockerignore` and `.gitignore` and **must never be committed** to version control, as it contains sensitive tokens. 
+   - **Where to put the API key:** Under `SUNO_API_KEY=your_key_here` in `.env`. **Important:** The `.env` file is in `.dockerignore` and `.gitignore` and **must never be committed** to version control.
 
 ```bash
 # Example .env configuration
@@ -178,11 +178,11 @@ Check Status Response: {
   'audio_file_url': ''
 }
 
-# After ~20 seconds (completed with audio)
+# After ~20 seconds (completed with local audio)
 Check Status Response: {
   'task_id': 'mock-task-a6186f35-362a-437e-9b07-bfbef32fb62d', 
   'status': GenerationStatus.COMPLETED, 
-  'audio_file_url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+  'audio_file_url': 'http://localhost:8000/static/audio/mock_song.mp3'
 }
 ```
 

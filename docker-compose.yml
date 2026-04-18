@@ -17,13 +17,13 @@ services:
 
   frontend:
     build:
-      context: ./Frontend
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: cithara-frontend
     ports:
       - "5173:5173"
     volumes:
-      - ./Frontend:/app
+      - ./frontend:/app
       - /app/node_modules
     networks:
       - cithara-network

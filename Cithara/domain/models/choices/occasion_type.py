@@ -11,4 +11,5 @@ class OccasionType(models.TextChoices):
     PARTY = "Party", "Party"
     RELAXATION = "Relaxation", "Relaxation"
     STUDY = "Study", "Study"
+    WORKOUT = "Workout", "Workout"
     OTHER = "Other", "Other"
