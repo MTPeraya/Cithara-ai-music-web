@@ -1,9 +1,11 @@
 import { useRef, useEffect, useState } from 'react';
+import { api } from '../api';
 
 export default function Player({ song, isPlaying, setIsPlaying, onDelete }) {
   const audioRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [shareStatus, setShareStatus] = useState("idle"); // idle, loading, copied
 
   useEffect(() => {
     if (audioRef.current) {
@@ -61,6 +63,24 @@ export default function Player({ song, isPlaying, setIsPlaying, onDelete }) {
     return `${min}:${sec.toString().padStart(2, '0')}`;
   };
 
+  const handleShare = async () => {
+    if (!song || !song.id) return;
+    try {
+      setShareStatus("loading");
+      const data = await api.createShareLink(song.id);
+      if (data && data.token) {
+        // Construct a direct API link for demonstration purposes
+        const shareUrl = `http://localhost:8000/api/share-links/by-token/?token=${data.token}`;
+        await navigator.clipboard.writeText(shareUrl);
+        setShareStatus("copied");
+        setTimeout(() => setShareStatus("idle"), 2500);
+      }
+    } catch (e) {
+      console.error(e);
+      setShareStatus("idle");
+    }
+  };
+
   if (!song) return null;
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -116,12 +136,28 @@ export default function Player({ song, isPlaying, setIsPlaying, onDelete }) {
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button className="p-3 rounded-xl transition-all hover:bg-slate-50 text-slate-400 hover:text-indigo-600" title="Share">
-              <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-              </svg>
+          <div className="flex items-center gap-3 relative">
+            <button 
+              onClick={handleShare}
+              disabled={shareStatus === 'loading'}
+              className="p-3 rounded-xl transition-all hover:bg-slate-50 text-slate-400 hover:text-indigo-600 disabled:opacity-50 relative" 
+              title="Share"
+            >
+              {shareStatus === 'copied' ? (
+                <svg width="22" height="22" fill="none" stroke="#10b981" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+              ) : (
+                <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+              )}
+              {shareStatus === 'copied' && (
+                <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
+                  Link Copied!
+                </span>
+              )}
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); onDelete(); }} 

@@ -125,5 +125,18 @@ export const api = {
       headers: getHeaders()
     });
     if (!res.ok) throw new Error("Failed to delete song");
+  },
+
+  createShareLink: async (songId) => {
+    const res = await fetch(`${API_BASE}/share-links/`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ song: songId })
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error("Failed to create share link: " + err);
+    }
+    return await res.json();
   }
 };
