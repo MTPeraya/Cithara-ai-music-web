@@ -16,6 +16,7 @@ def load_env():
                     os.environ.setdefault(key.strip(), value.strip())
 
 # Setup Django environment
+sys.path.append(os.path.join(os.getcwd(), '.'))
 sys.path.append(os.path.join(os.getcwd(), 'Cithara'))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Cithara.settings')
 load_env()
