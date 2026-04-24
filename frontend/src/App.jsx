@@ -31,21 +31,15 @@ function App() {
     return () => window.removeEventListener('hashchange', checkHash);
   }, []);
 
-  // If share token is present, render the shared song page
-  if (shareToken) {
-    return <SharedSong token={shareToken} />;
-  }
-
   useEffect(() => {
-    if (currentPage === 'library') {
+    if (currentPage === 'library' && !shareToken) {
       loadLibrary();
     }
   }, [currentPage, currentLibraryId]);
 
   const loadLibrary = async () => {
-    if (!currentLibraryId) return; // Wait until library id is set
+    if (!currentLibraryId) return;
     try {
-      // Pass currentLibraryId to fetch only songs for this library
       const data = await api.getSongs(currentLibraryId);
       setLibrary(data.map(song => ({
         id: song.id,
@@ -81,6 +75,11 @@ function App() {
       }
     } catch(e) { console.error(e); }
   };
+
+  // Render shared song page if share token is present
+  if (shareToken) {
+    return <SharedSong token={shareToken} />;
+  }
 
   return (
     <div className="w-full h-full flex flex-col bg-slate-50 text-slate-800">

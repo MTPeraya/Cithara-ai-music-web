@@ -24,6 +24,21 @@ class ShareLinkViewSet(viewsets.ModelViewSet):
     """ViewSet for ShareLink model."""
     queryset = ShareLink.objects.all()
     serializer_class = ShareLinkSerializer
+
+    def create(self, request, *args, **kwargs):
+        """
+        Create a share link for a song, or return the existing one
+        if a share link already exists (OneToOne constraint).
+        """
+        song_id = request.data.get('song')
+        if song_id:
+            try:
+                existing = ShareLink.objects.get(song_id=song_id)
+                serializer = self.get_serializer(existing)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except ShareLink.DoesNotExist:
+                pass
+        return super().create(request, *args, **kwargs)
     
     @action(detail=False, methods=['get'])
     def by_token(self, request):
