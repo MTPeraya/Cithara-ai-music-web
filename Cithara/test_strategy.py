@@ -6,7 +6,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Cithara.settings')
 django.setup()
 
 from domain.models import Song, Library, User
-from domain.strategies.factory import get_generator_strategy
+from domain.strategies.strategy_factory import get_generator_strategy
 
 user, _ = User.objects.get_or_create(username="strattest", email="strat@test.com")
 library, _ = Library.objects.get_or_create(user=user)

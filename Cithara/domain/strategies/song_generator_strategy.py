@@ -1,3 +1,10 @@
+"""
+Abstract base class defining the interface for song generation strategies.
+
+All concrete strategies (MockSongGeneratorStrategy, SunoSongGeneratorStrategy)
+must implement the generate() and check_status() methods.
+"""
+
 from abc import ABC, abstractmethod
 from domain.models import Song
 

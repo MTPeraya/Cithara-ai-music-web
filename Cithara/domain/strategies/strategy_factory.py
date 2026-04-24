@@ -1,5 +1,12 @@
+"""
+Factory function for selecting the active song generation strategy.
+
+Reads the GENERATOR_STRATEGY Django setting (from .env) and returns
+the appropriate strategy instance.
+"""
+
 from django.conf import settings
-from .base import SongGeneratorStrategy
+from .song_generator_strategy import SongGeneratorStrategy
 from .mock_strategy import MockSongGeneratorStrategy
 from .suno_strategy import SunoSongGeneratorStrategy
 

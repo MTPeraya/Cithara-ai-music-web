@@ -27,7 +27,7 @@ from domain.models.choices.genre_type import GenreType
 from domain.models.choices.mood_type import MoodType
 from domain.models.choices.occasion_type import OccasionType
 from domain.models.choices.generation_status import GenerationStatus
-from domain.strategies.factory import get_generator_strategy
+from domain.strategies.strategy_factory import get_generator_strategy
 
 def run_demo():
     print("=== Exercise 4 Strategy Pattern Demonstration ===")
@@ -66,7 +66,7 @@ def run_demo():
     # Force Mock strategy
     settings.GENERATOR_STRATEGY = 'mock'
     
-    from domain.strategies.factory import get_generator_strategy
+    from domain.strategies.strategy_factory import get_generator_strategy
     mock_strategy = get_generator_strategy()
     print(f"Active Factory Strategy Instance: {mock_strategy.__class__.__name__}")
     

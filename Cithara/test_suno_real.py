@@ -7,7 +7,7 @@ os.environ['SUNO_API_KEY'] = 'fake_key_123'
 django.setup()
 
 from domain.models import Song, Library, User
-from domain.strategies.factory import get_generator_strategy
+from domain.strategies.strategy_factory import get_generator_strategy
 
 user = User.objects.first()
 library = Library.objects.first()

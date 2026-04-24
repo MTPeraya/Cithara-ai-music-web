@@ -2,7 +2,7 @@ import uuid
 from django.utils import timezone
 from domain.models import Song
 from domain.models.choices.generation_status import GenerationStatus
-from .base import SongGeneratorStrategy
+from .song_generator_strategy import SongGeneratorStrategy
 
 class MockSongGeneratorStrategy(SongGeneratorStrategy):
     """

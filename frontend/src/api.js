@@ -138,5 +138,13 @@ export const api = {
       throw new Error("Failed to create share link: " + err);
     }
     return await res.json();
+  },
+
+  getSongByToken: async (token) => {
+    const res = await fetch(`${API_BASE}/share-links/by-token/?token=${encodeURIComponent(token)}`);
+    if (!res.ok) {
+      throw new Error("Song not found or link expired");
+    }
+    return await res.json();
   }
 };

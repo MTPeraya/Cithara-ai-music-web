@@ -70,7 +70,7 @@ export default function Player({ song, isPlaying, setIsPlaying, onDelete }) {
       const data = await api.createShareLink(song.id);
       if (data && data.token) {
         // Construct a direct API link for demonstration purposes
-        const shareUrl = `http://localhost:8000/api/share-links/by-token/?token=${data.token}`;
+        const shareUrl = `${window.location.origin}/#/share/${data.token}`;
         await navigator.clipboard.writeText(shareUrl);
         setShareStatus("copied");
         setTimeout(() => setShareStatus("idle"), 2500);

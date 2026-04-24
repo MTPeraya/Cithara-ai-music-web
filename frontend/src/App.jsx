@@ -4,6 +4,7 @@ import SignIn from './components/SignIn';
 import Library from './components/Library';
 import CreateFlow from './components/CreateFlow';
 import Player from './components/Player';
+import SharedSong from './components/SharedSong';
 import { api } from './api';
 
 function App() {
@@ -12,6 +13,28 @@ function App() {
   const [library, setLibrary] = useState([]);
   const [currentSongIndex, setCurrentSongIndex] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [shareToken, setShareToken] = useState(null);
+
+  // Check for share link hash on mount
+  useEffect(() => {
+    const checkHash = () => {
+      const hash = window.location.hash;
+      const match = hash.match(/^#\/share\/(.+)$/);
+      if (match) {
+        setShareToken(match[1]);
+      } else {
+        setShareToken(null);
+      }
+    };
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, []);
+
+  // If share token is present, render the shared song page
+  if (shareToken) {
+    return <SharedSong token={shareToken} />;
+  }
 
   useEffect(() => {
     if (currentPage === 'library') {
@@ -102,3 +125,4 @@ function App() {
 }
 
 export default App;
+
