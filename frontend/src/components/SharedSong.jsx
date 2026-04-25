@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 
-export default function SharedSong({ token }) {
+export default function SharedSong({ token, user }) {
   const [song, setSong] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -11,6 +11,13 @@ export default function SharedSong({ token }) {
   const audioRef = useRef(null);
 
   useEffect(() => {
+    // SEC-4 & SHARE-3: Restrict shared song access to authenticated users with a valid link
+    if (!user) {
+      setLoading(false);
+      setError("AUTHENTICATION_REQUIRED");
+      return;
+    }
+
     const fetchSong = async () => {
       try {
         const data = await api.getSongByToken(token);
@@ -22,7 +29,7 @@ export default function SharedSong({ token }) {
       }
     };
     fetchSong();
-  }, [token]);
+  }, [token, user]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -73,18 +80,32 @@ export default function SharedSong({ token }) {
   }
 
   if (error || !song) {
+    const isAuthError = error === "AUTHENTICATION_REQUIRED";
+    
     return (
       <div className="w-full h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center animate-fade-in max-w-md px-6">
-          <div className="w-24 h-24 mx-auto rounded-full flex items-center justify-center mb-6 bg-red-50 border border-red-100">
-            <svg width="40" height="40" fill="none" stroke="#ef4444" strokeWidth="2" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" />
-            </svg>
+          <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center mb-6 ${isAuthError ? 'bg-indigo-50 border border-indigo-100' : 'bg-red-50 border border-red-100'}`}>
+            {isAuthError ? (
+              <svg width="40" height="40" fill="none" stroke="#6366f1" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+              </svg>
+            ) : (
+              <svg width="40" height="40" fill="none" stroke="#ef4444" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" />
+              </svg>
+            )}
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">Song Not Found</h2>
-          <p className="text-slate-500 mb-6">{error || 'This share link may have expired or been removed.'}</p>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">
+            {isAuthError ? 'Authentication Required' : 'Song Not Found'}
+          </h2>
+          <p className="text-slate-500 mb-6">
+            {isAuthError 
+              ? 'Please sign in to your Cithara account to view this shared masterpiece.' 
+              : (error || 'This share link may have expired or been removed.')}
+          </p>
           <a href="/" className="btn-primary px-8 py-3 rounded-xl font-medium text-white inline-block">
-            Go to Cithara →
+            {isAuthError ? 'Sign In to View →' : 'Go to Cithara →'}
           </a>
         </div>
       </div>

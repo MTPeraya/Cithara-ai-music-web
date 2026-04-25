@@ -81,6 +81,16 @@ export default function Player({ song, isPlaying, setIsPlaying, onDelete }) {
     }
   };
 
+  const handleDownload = () => {
+    if (!song || !song.audio_url) return;
+    const link = document.createElement('a');
+    link.href = song.audio_url;
+    link.download = `${song.title.replace(/\s+/g, '_')}.mp3`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (!song) return null;
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -137,6 +147,16 @@ export default function Player({ song, isPlaying, setIsPlaying, onDelete }) {
           </div>
 
           <div className="flex items-center gap-3 relative">
+            <button 
+              onClick={handleDownload}
+              disabled={!song.audio_url}
+              className="p-3 rounded-xl transition-all hover:bg-slate-50 text-slate-400 hover:text-emerald-600 disabled:opacity-50"
+              title="Download Song"
+            >
+              <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+              </svg>
+            </button>
             <button 
               onClick={handleShare}
               disabled={shareStatus === 'loading'}

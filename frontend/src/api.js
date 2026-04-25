@@ -127,6 +127,32 @@ export const api = {
     if (!res.ok) throw new Error("Failed to delete song");
   },
 
+  updateSong: async (songId, formData) => {
+    const res = await fetch(`${API_BASE}/songs/${songId}/`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        title: formData.title,
+        genre: formData.genre,
+        mood: formData.mood,
+        occasion: formData.occasion,
+        singer_voice: formData.voice,
+        prompt: formData.context
+      })
+    });
+    if (!res.ok) throw new Error('Failed to update song');
+    return await res.json();
+  },
+
+  regenerateSong: async (songId) => {
+    const res = await fetch(`${API_BASE}/songs/${songId}/regenerate/`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    if (!res.ok) throw new Error('Failed to trigger regeneration');
+    return await res.json();
+  },
+
   createShareLink: async (songId) => {
     const res = await fetch(`${API_BASE}/share-links/`, {
       method: 'POST',
@@ -141,7 +167,7 @@ export const api = {
   },
 
   getSongByToken: async (token) => {
-    const res = await fetch(`${API_BASE}/share-links/by-token/?token=${encodeURIComponent(token)}`);
+    const res = await fetch(`${API_BASE}/share-links/by_token/?token=${encodeURIComponent(token)}`);
     if (!res.ok) {
       throw new Error("Song not found or link expired");
     }

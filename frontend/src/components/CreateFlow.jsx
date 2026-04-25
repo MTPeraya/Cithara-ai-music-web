@@ -4,7 +4,7 @@ import { api } from '../api';
 const genres = ['Rock', 'Pop', 'HipHop', 'Country', 'Jazz'];
 const voices = ['Male', 'Female'];
 const moods = ['Happy', 'Sad', 'Energetic', 'Calm'];
-const occasions = ['Birthday', 'Wedding', 'Funeral', 'Party', 'Relaxation', 'Study', 'Other'];
+const occasions = ['Birthday', 'Wedding', 'Funeral', 'Party', 'Relaxation', 'Workout', 'Study', 'Other'];
 
 // Which fields are required per step
 const REQUIRED_FIELDS = {
@@ -33,9 +33,25 @@ function FieldError({ show, message }) {
   );
 }
 
-export default function CreateFlow({ currentPage, setCurrentPage, currentLibraryId, onGenerationComplete }) {
+export default function CreateFlow({ currentPage, setCurrentPage, currentLibraryId, editingSong, onGenerationComplete }) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({ title: '', occasion: '', genre: '', voice: '', mood: '', story: '', context: '' });
+  
+  // Initialize form with editingSong data if available (GEN-3)
+  useEffect(() => {
+    if (editingSong) {
+      setFormData({
+        title: editingSong.title || '',
+        occasion: editingSong.occasion || '',
+        genre: editingSong.genre || '',
+        voice: editingSong.singer_voice || '',
+        mood: editingSong.mood || '',
+        story: '', // Reset story as it's typically fresh
+        context: editingSong.prompt || ''
+      });
+    }
+  }, [editingSong]);
+
   // Tracks which steps the user has attempted to submit (so we show errors for those steps)
   const [attemptedSteps, setAttemptedSteps] = useState({});
   const [generationStatus, setGenerationStatus] = useState('queued');
@@ -62,11 +78,20 @@ export default function CreateFlow({ currentPage, setCurrentPage, currentLibrary
 
     const run = async () => {
       try {
-        const song = await api.createSong(currentLibraryId, formData);
+        let song;
+        if (editingSong) {
+          // Update existing song with new parameters (GEN-3)
+          await api.updateSong(editingSong.id, formData);
+          // Trigger regeneration
+          song = await api.regenerateSong(editingSong.id);
+        } else {
+          // Create new song
+          song = await api.createSong(currentLibraryId, formData);
+        }
 
         const doPoll = async () => {
           try {
-            const data = await api.checkStatus(song.id);
+            const data = await api.checkStatus(song.id || editingSong?.id);
             const rawStatus = (data.song?.status || 'queued').toLowerCase();
             const mapped = STATUS_MAP[rawStatus] || { message: 'Processing...', progress: 30 };
 

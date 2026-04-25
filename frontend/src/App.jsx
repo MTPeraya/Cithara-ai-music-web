@@ -10,12 +10,13 @@ import { api } from './api';
 function App() {
   const [currentPage, setCurrentPage] = useState('signin');
   const [currentLibraryId, setCurrentLibraryId] = useState(null);
+  const [user, setUser] = useState(null);
   const [library, setLibrary] = useState([]);
   const [currentSongIndex, setCurrentSongIndex] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shareToken, setShareToken] = useState(null);
 
-  // Check for share link hash on mount
+  // Check for share link hash and session on mount
   useEffect(() => {
     const checkHash = () => {
       const hash = window.location.hash;
@@ -28,6 +29,19 @@ function App() {
     };
     checkHash();
     window.addEventListener('hashchange', checkHash);
+
+    // Restore session from localStorage
+    const savedUserId = localStorage.getItem('cithara_user_id');
+    const savedLibraryId = localStorage.getItem('cithara_library_id');
+    const savedUsername = localStorage.getItem('cithara_username');
+    const savedEmail = localStorage.getItem('cithara_email');
+
+    if (savedLibraryId && savedUserId) {
+      setCurrentLibraryId(savedLibraryId);
+      setUser({ username: savedUsername, email: savedEmail, id: savedUserId });
+      setCurrentPage('library');
+    }
+
     return () => window.removeEventListener('hashchange', checkHash);
   }, []);
 
@@ -47,6 +61,9 @@ function App() {
         genre: song.genre,
         mood: song.mood,
         status: song.status,
+        occasion: song.occasion,
+        singer_voice: song.singer_voice,
+        prompt: song.prompt,
         date: new Date(song.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         audio_url: song.audio_file_url,
         duration: song.duration ? `${Math.floor(song.duration/60)}:${String(song.duration%60).padStart(2, '0')}` : '0:00'
@@ -54,9 +71,33 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
-  const handleSignInSuccess = (libraryId) => {
+  const handleSignInSuccess = (libraryId, userData) => {
     setCurrentLibraryId(libraryId);
+    setUser(userData);
+    
+    // Save to localStorage
+    if (userData?.id) {
+      localStorage.setItem('cithara_user_id', userData.id);
+      localStorage.setItem('cithara_library_id', libraryId);
+      localStorage.setItem('cithara_username', userData.username);
+      localStorage.setItem('cithara_email', userData.email);
+    }
+    
     setCurrentPage('library');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('cithara_user_id');
+    localStorage.removeItem('cithara_library_id');
+    localStorage.removeItem('cithara_username');
+    localStorage.removeItem('cithara_email');
+
+    setCurrentLibraryId(null);
+    setUser(null);
+    setLibrary([]);
+    setCurrentSongIndex(null);
+    setIsPlaying(false);
+    setCurrentPage('signin');
   };
 
   const handleDeleteSong = async (index) => {
@@ -78,13 +119,22 @@ function App() {
 
   // Render shared song page if share token is present
   if (shareToken) {
-    return <SharedSong token={shareToken} />;
+    return <SharedSong token={shareToken} user={user} />;
   }
+
+  const handleNavigate = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleComposeNew = () => {
+    setCurrentSongIndex(null);
+    setCurrentPage('create');
+  };
 
   return (
     <div className="w-full h-full flex flex-col bg-slate-50 text-slate-800">
       {currentPage !== 'signin' && (
-        <Header currentPage={currentPage} setCurrentPage={setCurrentPage} />
+        <Header currentPage={currentPage} setCurrentPage={handleNavigate} onComposeNew={handleComposeNew} user={user} onLogout={handleLogout} />
       )}
       
       <main className="flex-1 overflow-auto">
@@ -92,7 +142,8 @@ function App() {
         {currentPage === 'library' && (
           <Library 
             library={library} 
-            setCurrentPage={setCurrentPage} 
+            setCurrentPage={handleNavigate}
+            onComposeNew={handleComposeNew}
             currentSongIndex={currentSongIndex}
             setCurrentSongIndex={setCurrentSongIndex}
             isPlaying={isPlaying}
@@ -102,10 +153,11 @@ function App() {
         {(currentPage === 'create' || currentPage === 'review' || currentPage === 'generating') && (
           <CreateFlow 
             currentPage={currentPage} 
-            setCurrentPage={setCurrentPage}
+            setCurrentPage={handleNavigate}
             currentLibraryId={currentLibraryId}
+            editingSong={currentSongIndex !== null ? library[currentSongIndex] : null}
             onGenerationComplete={() => {
-              loadLibrary().then(() => setCurrentPage('library'));
+              loadLibrary().then(() => handleNavigate('library'));
             }}
           />
         )}

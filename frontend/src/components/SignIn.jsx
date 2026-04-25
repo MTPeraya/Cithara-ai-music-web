@@ -19,7 +19,7 @@ export default function SignIn({ onSuccess }) {
 
     const libraryId = await api.getOrCreateLibrary(userId);
     if (libraryId) {
-      onSuccess(libraryId);
+      onSuccess(libraryId, { username, email, id: userId });
     } else {
       alert('Could not set up library.');
     }

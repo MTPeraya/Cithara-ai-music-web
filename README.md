@@ -9,12 +9,13 @@ This project implements the **domain layer** for Cithara, an AI-powered music ge
 ### Key Features
 
 - **Domain Models**: User, Library, Song, and ShareLink entities with proper relationships
-- **Constraints & Validation**: Domain rules enforced at the model level
-- **Enumerations**: Type-safe choices for Genre, Mood, Occasion, Voice, AudioFormat, and GenerationStatus
-- **Relationships**: 1:1 and 1:M relationships with cascade delete support
-- **Database Persistence**: SQLite with proper schema and migrations
-- **CRUD Operations**: Django Admin interface for Create, Read, Update, Delete operations
-- **Admin Interface**: User-friendly admin panels for all domain entities
+- **Authentication (AUTH-1, SEC-1)**: Simulated Google Sign-In with session management and Logout support.
+- **Privacy & Security (SEC-2, SEC-4)**: Strict library ownership and restricted shared link access for authenticated users.
+- **Multi-Step Composition (SONG-1)**: Robust multi-page form with parameters: Title, Genre, Mood, Occasion, and Voice.
+- **Library Management (LIB-1, LIB-6)**: Automatic storage, search, status filtering, and sorting (By Date/A-Z).
+- **Playback & Download (PLAY-1, SHARE-1)**: In-browser player with progress controls and direct MP3 export.
+- **Regeneration (GEN-3)**: Edit existing song parameters and re-trigger AI generation.
+- **Admin Interface**: User-friendly admin panels for all domain entities.
 
 ## Domain Model
 

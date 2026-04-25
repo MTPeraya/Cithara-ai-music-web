@@ -29,23 +29,28 @@ class SongViewSet(viewsets.ModelViewSet):
     on create and regenerate actions.
     """
     serializer_class = SongSerializer
+    filterset_fields = ['genre', 'mood', 'status']
+    search_fields = ['title', 'prompt']
+    ordering_fields = ['created_at', 'title']
 
     def get_queryset(self):
         """
-        Filter songs by library if library_id is provided in query parameters.
-        Allow detail lookups (pk in kwargs).
+        Filter songs by library to ensure users only see their own data (SEC-2).
+        Requires a 'library' query parameter.
         """
         queryset = Song.objects.all()
         
-        # If accessing a specific song (detail view), allow it
+        # In a real app, we would filter by request.user
+        # For this prototype simulation, we strictly filter by library ID
+        library_id = self.request.query_params.get('library', None)
+        
         if self.detail or 'pk' in self.kwargs:
             return queryset
 
-        library_id = self.request.query_params.get('library', None)
         if library_id:
             return queryset.filter(library_id=library_id)
         
-        # Prevent accidental leakage of all songs on list view for non-staff
+        # If no library is specified and user isn't staff, return empty (SEC-2)
         if not self.request.user.is_staff:
             return Song.objects.none()
             
